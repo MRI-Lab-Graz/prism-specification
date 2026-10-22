@@ -246,3 +246,137 @@ def test_a_flood_of_problems_is_capped_so_the_comment_fits_on_github(tmp_path, m
     code, out = _run(tmp_path, monkeypatch, body=_body(_proposal({**PARENT, **junk}, CHILD)))
     log = (out / "log").read_text(encoding="utf-8")
     assert code == 0 and len(log.splitlines()) <= 51 and "and 250 more" in log
+
+
+# --- proposal format v2: files by repository path (many terms) -----------------------------------
+
+V2 = "prism-proposal/2"
+
+
+def _v2(**files):
+    return {"format": V2, "files": {f"terms/biosample/{stem.replace('_', '.')}.json": term for stem, term in files.items()}}
+
+
+def _child(local, specimen, **over):
+    return {**CHILD, "TermID": f"prism:{local}.{specimen}", "SpecimenType": specimen, "Parent": f"prism:{local}", **over}
+
+
+def test_v2_many_terms_with_the_parent_only_in_the_proposal():
+    doc = _v2(ferritin=PARENT, ferritin_serum=CHILD, ferritin_plasma=_child("ferritin", "plasma"),
+              ferritin_saliva=_child("ferritin", "saliva"))
+    terms, problems = _check(doc)
+    assert problems == [] and len(terms) == 4 and all(t["Status"] == "official" for t in terms)
+
+
+def test_v1_is_converted_to_the_same_files():
+    pairs, problems = tp.normalize(_proposal(PARENT, CHILD))
+    assert problems == [] and [path for path, _ in pairs] == ["terms/biosample/ferritin.json", "terms/biosample/ferritin.serum.json"]
+    assert tp.normalize(_v2(ferritin=PARENT, ferritin_serum=CHILD))[0] == pairs
+
+
+@pytest.mark.parametrize(
+    "doc",
+    [
+        {"format": V2},
+        {"format": V2, "files": {}},
+        {"format": V2, "files": []},
+        {"format": V2, "files": "x"},
+        {"format": "prism-proposal/3", "files": {"terms/biosample/ferritin.json": PARENT}},
+        {"files": {"terms/biosample/ferritin.json": PARENT}},  # files without the format marker
+        {"format": V2, "files": {"terms/biosample/ferritin.json": PARENT}, "extra": 1},
+        {"format": V2, "files": {"terms/biosample/ferritin.json": "not an object"}},
+        {"format": V2, "files": {"terms/biosample/ferritin.json": [PARENT]}},
+    ],
+    ids=["no files", "empty files", "list files", "string files", "other format", "no format", "extra key", "string value", "list value"],
+)
+def test_v2_shape_problems(doc):
+    terms, problems = _check(doc)
+    assert terms == [] and problems
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "terms/biosample/../../schemas/stable/biosample.schema.json",
+        "terms/biosample/ferritin.json/../x.json",
+        "/etc/passwd",
+        "terms/biosample/Ferritin.json",
+        "terms/biosample/ferritin.json\n",
+        "terms/biosample/ferritin.JSON",
+        "terms/biosample/ferritin.txt",
+        "terms/biosample/sub/ferritin.json",
+        "terms/environment/ferritin.json",
+        "terms/biosample/.json",
+        "terms//ferritin.json",
+        "schemas/stable/ferritin.json",
+        ".github/workflows/x.json",
+        "scripts/ferritin.json",
+        "specs/ferritin.json",
+        "terms/biosample/ferritin",
+        "",
+    ],
+)
+def test_v2_paths_outside_the_allow_list_are_rejected(path):
+    terms, problems = _check({"format": V2, "files": {path: PARENT}})
+    assert terms == [] and any("path" in p for p in problems)
+
+
+def test_v2_the_file_name_must_match_the_term_id():
+    terms, problems = _check({"format": V2, "files": {"terms/biosample/other.json": PARENT}})
+    assert terms == [] and any("ferritin" in p and "other" in p for p in problems)
+
+
+def test_v2_limits_on_the_number_of_files():
+    ok = {"format": V2, "files": {f"terms/biosample/m{n}-x.json": {**PARENT, "TermID": f"prism:m{n}-x", "Label": f"m{n}x", "Aliases": []}
+                                  for n in range(tp.MAX_FILES)}}
+    terms, problems = _check(ok)
+    assert problems == [] and len(terms) == tp.MAX_FILES
+    ok["files"]["terms/biosample/extra-x.json"] = {**PARENT, "TermID": "prism:extra-x", "Label": "extrax", "Aliases": []}
+    assert any("at most" in p for p in _check(ok)[1])
+
+
+def test_v2_a_term_that_is_already_official_is_named():
+    cortisol = {"TermID": "prism:cortisol", "Level": "analyte", "Label": "mine", "Aliases": [], "Description": "d"}
+    terms, problems = _check({"format": V2, "files": {"terms/biosample/cortisol.json": cortisol}})
+    assert terms == [] and any("prism:cortisol" in p and "official" in p for p in problems)
+    assert any("cort" in p for p in _check(_v2(ferritin={**PARENT, "Aliases": ["cort"]}, ferritin_serum=CHILD))[1])
+
+
+def test_v2_forbidden_fields_and_bad_values_are_reported_per_file():
+    _, problems = _check(_v2(ferritin={**PARENT, "Status": "official"}, ferritin_serum={**CHILD, "Units": 5}))
+    assert any("Status" in p for p in problems) and any("Units" in p for p in problems)
+
+
+def test_v2_a_child_needs_its_parent_in_the_registry_or_the_proposal():
+    assert _check(_v2(ferritin_serum=CHILD))[0] == [] and any("Parent" in p for p in _check(_v2(ferritin_serum=CHILD))[1])
+    cortisol_hair = {**CHILD, "TermID": "prism:cortisol.hair", "Parent": "prism:cortisol", "SpecimenType": "hair"}
+    assert _check(_v2(cortisol_hair=cortisol_hair))[1] == []
+
+
+def test_v2_size_limit_applies_to_the_form_and_to_files():
+    big = _v2(ferritin={**PARENT, "Description": "x" * (tp.MAX_BYTES + 1)})
+    with pytest.raises(tp.ProposalError):
+        tp.extract_proposal(_body(json.dumps(big), fenced=False))
+
+
+def test_v2_check_cli_writes_the_files_at_their_paths(tmp_path, monkeypatch):
+    doc = _v2(ferritin=PARENT, ferritin_serum=CHILD, ferritin_plasma=_child("ferritin", "plasma"))
+    f = tmp_path / "proposal.json"
+    f.write_text(json.dumps(doc), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok"
+    written = sorted(p.relative_to(out).as_posix() for p in (out / "terms").rglob("*.json"))
+    assert written == ["terms/biosample/ferritin.json", "terms/biosample/ferritin.plasma.json", "terms/biosample/ferritin.serum.json"]
+
+
+def test_v2_check_cli_failure_writes_no_files(tmp_path, monkeypatch):
+    f = tmp_path / "proposal.json"
+    f.write_text(json.dumps({"format": V2, "files": {"schemas/stable/x.json": PARENT}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed" and not (out / "terms").exists()
+    assert "schemas/stable/x.json" in (out / "log").read_text(encoding="utf-8")
+
+
+def test_v1_keeps_its_two_term_cap():
+    extra = {**CHILD, "TermID": "prism:ferritin.plasma", "SpecimenType": "plasma"}
+    assert any("at most 2" in p for p in _check(_proposal(PARENT, CHILD, extra))[1])

@@ -155,3 +155,22 @@ def test_specimen_types_reads_the_enum_from_the_schema():
 def test_a_trailing_newline_is_not_a_valid_slug():
     bad = {"TermID": "prism:x\n", "Level": "analyte", "Label": "x", "Aliases": [], "Description": "d", "Status": "official"}
     assert check_registry({"x\n": bad})
+
+
+# --- polish batch ---------------------------------------------------------------
+
+def test_registry_files_with_wrong_value_types_are_reported_not_crashed_on():
+    for field, value in (("Aliases", "abc"), ("Aliases", 5), ("Equivalents", {"a": 1}), ("Label", ["x"]), ("Description", 3)):
+        problems = check_registry({"cortisol": _parent(**{field: value})})
+        assert any(field in p for p in problems), field
+
+
+def test_a_string_in_aliases_does_not_claim_single_letters():
+    reg = {"cortisol": _parent(Aliases="abc"), "other": _parent("other", Aliases=["a"])}
+    problems = check_registry(reg)
+    assert problems and not any("'a'" in p and "claimed" in p for p in problems)
+
+
+def test_seed_terms_know_their_common_spellings():
+    registry, _ = load_terms(TERMS)
+    assert "il-6" in registry["il6"]["Aliases"] and "tnf-alpha" in registry["tnfa"]["Aliases"] and "hscrp" in registry["crp"]["Aliases"]

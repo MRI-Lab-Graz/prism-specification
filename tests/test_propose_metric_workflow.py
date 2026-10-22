@@ -115,3 +115,18 @@ def test_verify_step_rejects_symlinks(tmp_path):
     root = _bundle(tmp_path)
     (root / "bundle" / "link").symlink_to("/etc/passwd")
     assert _verify(root).returncode != 0
+
+
+def test_verify_step_rejects_newline_tricks_in_directory_names(tmp_path):
+    # find prints this one path as two lines, each of which looks like an allowed file
+    root = _bundle(tmp_path)
+    trick = root / "bundle" / "terms" / "biosample" / "x.json\nbundle"
+    trick.mkdir()
+    (trick / "status").write_text("x\n", encoding="utf-8")
+    result = _verify(root)
+    assert result.returncode != 0 and "unexpected files" in result.stderr
+
+
+def test_pr_step_no_longer_passes_a_log_file():
+    step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "draft" in s.get("name", "").lower())
+    assert "LOG_FILE" not in step.get("env", {})

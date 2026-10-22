@@ -198,3 +198,47 @@ def test_pr_body_cli_reads_the_environment(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("ISSUE_NUMBER", "12")
     monkeypatch.setenv("LOG_FILE", str(log))
     assert tp.main(["pr-body"]) == 0 and "#12" in capsys.readouterr().out
+
+
+# --- review fixes: value types, trailing newline, always a bundle, CRLF -------
+
+@pytest.mark.parametrize(
+    "where,field,value",
+    [
+        ("parent", "Aliases", 5), ("parent", "Aliases", [1]), ("parent", "Equivalents", 1), ("parent", "Label", ["a"]),
+        ("parent", "Description", {"x": 1}), ("parent", "Level", 3),
+        ("child", "AlternativeUnits", {"a": 1}), ("child", "Units", 5), ("child", "Units", {"x": 1}),
+        ("child", "MinValue", "zero"), ("child", "MinValue", True), ("child", "WarnMaxValue", [1]),
+        ("child", "LOINC", 5), ("child", "SpecimenType", ["serum"]), ("child", "Parent", 7),
+    ],
+)
+def test_value_types_are_checked_without_crashing(where, field, value):
+    parent, child = dict(PARENT), dict(CHILD)
+    (parent if where == "parent" else child)[field] = value
+    terms, problems = _check(_proposal(parent, child))
+    assert terms == [] and any(field in p for p in problems)
+
+
+def test_trailing_newline_in_an_id_is_rejected_and_never_becomes_a_file(tmp_path):
+    _, problems = _check(_proposal({**PARENT, "TermID": "prism:zonulin\n"}, CHILD))
+    assert problems
+    with pytest.raises(tp.ProposalError):
+        tp.write_terms([{**PARENT, "TermID": "prism:a\n"}], tmp_path, "biosample")
+    assert not list(tmp_path.rglob("*"))
+
+
+def test_internal_error_still_writes_a_failed_bundle(tmp_path, monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(tp, "check_proposal", boom)
+    code, out = _run(tmp_path, monkeypatch, body=_body(_proposal(PARENT, CHILD)))
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed"
+    assert "internal error" in (out / "log").read_text(encoding="utf-8")
+
+
+def test_extract_handles_crlf_bodies_and_backticks_inside_strings():
+    p = _proposal({**PARENT, "Description": "uses ``` fences inside text"}, CHILD)
+    assert tp.extract_proposal(_body(p)) == p
+    assert tp.extract_proposal(_body(p).replace("\n", "\r\n")) == p
+    assert tp.extract_proposal(_body(p, fenced=False).replace("\n", "\r\n")) == p

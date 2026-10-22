@@ -13,8 +13,8 @@ body:
 
         `python prism_tools.py terms propose --sidecar <your sidecar.json> --column <column> --open`
 
-        You can also paste a proposal below by hand. A proposal is one JSON document with one or two
-        terms (see CONTRIBUTING.md). A bot checks it against the registry and, if it is fine, a
+        You can also paste a proposal below by hand. A proposal is one JSON document with up to 40
+        term files (format `prism-proposal/2`, see CONTRIBUTING.md). A bot checks it against the registry and, if it is fine, a
         maintainer takes it from there. The maintainers may choose a different ID or name; IDs are
         frozen once released, and your own column name is kept as an alias, so your files keep working.
 

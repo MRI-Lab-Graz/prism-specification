@@ -62,10 +62,14 @@ jobs:
             echo "bundle contains links or special files" >&2
             exit 1
           fi
-          if find bundle -type f | grep -qvE '^bundle/(status|log|terms/biosample/[a-z0-9.-]+\.json)$'; then
+          # NUL-separated, so a newline inside a file or folder name cannot pose as two allowed lines
+          while IFS= read -r -d '' f; do
+            name="${f#bundle/terms/biosample/}"
+            if [[ "$f" == bundle/status || "$f" == bundle/log ]]; then continue; fi
+            if [[ "$f" == bundle/terms/biosample/* && "$name" =~ ^[a-z0-9.-]+\.json$ ]]; then continue; fi
             echo "bundle contains unexpected files" >&2
             exit 1
-          fi
+          done < <(find bundle -type f -print0)
           if [ "$(cat bundle/status)" != ok ]; then
             echo "failed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -95,7 +99,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          LOG_FILE: bundle/log
         run: |
           BRANCH="metric/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
           python3 scripts/term_proposal.py pr-body > pr-body.md

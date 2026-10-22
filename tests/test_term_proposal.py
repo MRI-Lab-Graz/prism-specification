@@ -186,17 +186,14 @@ def test_check_cli_file_mode_rejects_oversize_and_non_json(tmp_path, monkeypatch
         shutil.rmtree(out)
 
 
-def test_pr_body_is_a_draft_with_the_checklist_and_neutralised_warnings():
-    body = tp.pr_body(7, "WARNING: see `@octocat` and [x](http://evil)\nERROR: not a warning")
+def test_pr_body_is_a_draft_with_the_checklist_and_no_dead_warnings_section():
+    body = tp.pr_body(7)
     assert "draft" in body.lower() and "#7" in body and "frozen" in body and "UCUM" in body
-    assert "- `WARNING: see '@octocat' and [x](http://evil)`" in body and "not a warning" not in body
+    assert "Warnings" not in body  # the check only writes errors, which fail the bundle
 
 
-def test_pr_body_cli_reads_the_environment(tmp_path, monkeypatch, capsys):
-    log = tmp_path / "log"
-    log.write_text("", encoding="utf-8")
+def test_pr_body_cli_reads_the_environment(monkeypatch, capsys):
     monkeypatch.setenv("ISSUE_NUMBER", "12")
-    monkeypatch.setenv("LOG_FILE", str(log))
     assert tp.main(["pr-body"]) == 0 and "#12" in capsys.readouterr().out
 
 
@@ -242,3 +239,10 @@ def test_extract_handles_crlf_bodies_and_backticks_inside_strings():
     assert tp.extract_proposal(_body(p)) == p
     assert tp.extract_proposal(_body(p).replace("\n", "\r\n")) == p
     assert tp.extract_proposal(_body(p, fenced=False).replace("\n", "\r\n")) == p
+
+
+def test_a_flood_of_problems_is_capped_so_the_comment_fits_on_github(tmp_path, monkeypatch):
+    junk = {f"X{i}": 1 for i in range(300)}
+    code, out = _run(tmp_path, monkeypatch, body=_body(_proposal({**PARENT, **junk}, CHILD)))
+    log = (out / "log").read_text(encoding="utf-8")
+    assert code == 0 and len(log.splitlines()) <= 51 and "and 250 more" in log

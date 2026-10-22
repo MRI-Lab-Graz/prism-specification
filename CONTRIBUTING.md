@@ -14,7 +14,7 @@ python prism_tools.py terms propose --sidecar <your sidecar.json> --column <colu
 ```
 
 Without `--open` it only prints the proposal. You can also open the
-["Propose a Metric" issue form](../../issues/new?template=propose-metric.yml) and paste a proposal by hand.
+["Propose a Metric" issue form](https://github.com/MRI-Lab-Graz/prism-specification/issues/new?template=propose-metric.yml) and paste a proposal by hand.
 A proposal is one JSON document, at most 20 KB:
 
 ```json

@@ -115,3 +115,86 @@ def test_proposal_that_is_not_an_object_or_has_no_terms_fails():
                 {"modality": "survey", "terms": [PARENT]}):
         _, problems = _check(bad)
         assert problems, bad
+
+
+# --- task A2: write_terms, pr_body, command line ----------------------------
+
+import shutil
+
+
+def test_write_terms_creates_one_file_per_term_and_passes_the_registry_check(tmp_path):
+    shutil.copytree(REPO / "terms", tmp_path / "terms")
+    terms, problems = _check(_proposal(PARENT, CHILD))
+    assert problems == []
+    written = tp.write_terms(terms, tmp_path / "terms", "biosample")
+    assert sorted(p.name for p in written) == ["ferritin.json", "ferritin.serum.json"]
+    registry, load_problems = ct.load_terms(tmp_path / "terms" / "biosample")
+    assert load_problems == [] and ct.check_registry(registry, SPECIMENS) == []
+    assert json.loads(written[0].read_text(encoding="utf-8"))["Status"] == "official"
+
+
+def test_write_terms_refuses_a_bad_local_part(tmp_path):
+    for tid in ("prism:../x", "prism:A", "prism:a/b"):
+        with pytest.raises(tp.ProposalError):
+            tp.write_terms([{**PARENT, "TermID": tid}], tmp_path, "biosample")
+    assert not list(tmp_path.rglob("*.json"))
+
+
+def _run(tmp_path, monkeypatch, body=None, file=None, proposal=None):
+    out = tmp_path / "bundle"
+    argv = ["check", "--terms", str(REPO / "terms" / "biosample"), "--schema", str(SCHEMA), "--out", str(out)]
+    if file is not None:
+        argv += ["--file", str(file)]
+    if body is not None:
+        monkeypatch.setenv("ISSUE_BODY", body)
+    return tp.main(argv), out
+
+
+def test_check_cli_with_issue_body_env_writes_an_ok_bundle(tmp_path, monkeypatch):
+    code, out = _run(tmp_path, monkeypatch, body=_body(_proposal(PARENT, CHILD)))
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok"
+    assert (out / "terms" / "biosample" / "ferritin.json").is_file()
+    assert (out / "log").read_text(encoding="utf-8") == ""
+
+
+def test_check_cli_failure_writes_status_failed_and_the_reasons(tmp_path, monkeypatch):
+    code, out = _run(tmp_path, monkeypatch, body=_body(_proposal({**PARENT, "Status": "official"}, CHILD)))
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed"
+    assert "Status" in (out / "log").read_text(encoding="utf-8")
+    assert not (out / "terms").exists()
+
+
+def test_check_cli_bad_body_is_a_failed_bundle_not_a_crash(tmp_path, monkeypatch):
+    code, out = _run(tmp_path, monkeypatch, body="no sections at all")
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed"
+
+
+def test_check_cli_file_mode_equals_issue_mode(tmp_path, monkeypatch):
+    f = tmp_path / "proposal.json"
+    f.write_text(json.dumps(_proposal(PARENT, CHILD)), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok"
+    assert json.loads((out / "terms/biosample/ferritin.serum.json").read_text(encoding="utf-8"))["Units"] == "ug/L"
+
+
+def test_check_cli_file_mode_rejects_oversize_and_non_json(tmp_path, monkeypatch):
+    f = tmp_path / "p.json"
+    for text in ("{nope", "x" * (tp.MAX_BYTES + 1)):
+        f.write_text(text, encoding="utf-8")
+        _, out = _run(tmp_path, monkeypatch, file=f)
+        assert (out / "status").read_text(encoding="utf-8").strip() == "failed"
+        shutil.rmtree(out)
+
+
+def test_pr_body_is_a_draft_with_the_checklist_and_neutralised_warnings():
+    body = tp.pr_body(7, "WARNING: see `@octocat` and [x](http://evil)\nERROR: not a warning")
+    assert "draft" in body.lower() and "#7" in body and "frozen" in body and "UCUM" in body
+    assert "- `WARNING: see '@octocat' and [x](http://evil)`" in body and "not a warning" not in body
+
+
+def test_pr_body_cli_reads_the_environment(tmp_path, monkeypatch, capsys):
+    log = tmp_path / "log"
+    log.write_text("", encoding="utf-8")
+    monkeypatch.setenv("ISSUE_NUMBER", "12")
+    monkeypatch.setenv("LOG_FILE", str(log))
+    assert tp.main(["pr-body"]) == 0 and "#12" in capsys.readouterr().out

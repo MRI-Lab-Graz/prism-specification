@@ -4,6 +4,31 @@ Thank you for helping to extend PRISM. By contributing you agree that your
 contribution is licensed as stated in [LICENSE](LICENSE): CC BY 4.0 for
 `schemas/`, `terms/` and `specs/`, MIT for `scripts/` and `tests/`.
 
+## Proposing a metric with PRISM Studio or the issue form
+
+The easiest way is the command in PRISM Studio, which builds the proposal from a column of your
+sidecar and opens the issue form with the field filled in:
+
+```bash
+python prism_tools.py terms propose --sidecar <your sidecar.json> --column <column> --open
+```
+
+Without `--open` it only prints the proposal. You can also open the
+["Propose a Metric" issue form](../../issues/new?template=propose-metric.yml) and paste a proposal by hand.
+A proposal is one JSON document, at most 20 KB:
+
+```json
+{"modality": "biosample", "terms": [<parent term>, <child term>]}
+```
+
+* One or two terms: a parent and a child, or only a child when the analyte is already official.
+* Only `prism:` IDs, and none of the fields `Status` and `ReplacedBy` (the maintainer's merge sets them).
+* A bot checks it against the current registry (the same rules as below). For trusted authors it opens a
+  draft pull request; for everyone else a maintainer takes over. The maintainers may choose a different
+  ID or name; your own column name is kept as an alias.
+* No GitHub account: save the proposal to a file and send it to a maintainer, who can run
+  `python scripts/term_proposal.py check --file proposal.json --terms terms/biosample --schema schemas/stable/biosample.schema.json --out bundle`.
+
 ## Proposing a new metric (term)
 
 A term is one JSON file in `terms/<modality>/`, named after the local part of its ID.

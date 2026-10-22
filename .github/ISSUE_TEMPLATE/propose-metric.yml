@@ -1,0 +1,38 @@
+name: Propose a Metric
+description: Propose a new metric (term) for the PRISM term registry, for example a salivary cortisol measure
+title: "[Metric]: "
+labels: ["type: new-metric", "status: needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a metric!
+
+        The easiest way is PRISM Studio's command, which builds the proposal from a column of your
+        sidecar and opens this form with the field filled in:
+
+        `python prism_tools.py terms propose --sidecar <your sidecar.json> --column <column> --open`
+
+        You can also paste a proposal below by hand. A proposal is one JSON document with one or two
+        terms (see CONTRIBUTING.md). A bot checks it against the registry and, if it is fine, a
+        maintainer takes it from there. The maintainers may choose a different ID or name; IDs are
+        frozen once released, and your own column name is kept as an alias, so your files keep working.
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: The proposal (JSON). Do not edit it unless you know what a term file looks like.
+      render: json
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: agreements
+    attributes:
+      label: Agreements
+      options:
+        - label: I agree that my contribution is licensed as stated in LICENSE (CC BY 4.0 for the specification).
+          required: true
+        - label: The proposal contains no personal data.
+          required: true

@@ -1,0 +1,119 @@
+name: Propose metric
+
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  # Untrusted input: the issue body. Only code from the default branch runs; read-only token, no credentials.
+  check:
+    if: "contains(github.event.issue.labels.*.name, 'type: new-metric')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the proposal
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python3 scripts/term_proposal.py check --terms terms/biosample --schema schemas/stable/biosample.schema.json --out bundle
+
+      - name: Upload result bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: metric-bundle
+          path: bundle
+          retention-days: 1
+          if-no-files-found: error
+
+  # Privileged: only trusted code runs here; the artifact is treated as data.
+  report:
+    needs: check
+    if: "contains(github.event.issue.labels.*.name, 'type: new-metric')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+
+      - name: Download result bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: metric-bundle
+          path: bundle
+
+      - name: Verify the bundle is plain, expected files
+        id: bundle
+        run: |
+          if [ -n "$(find bundle -type l)" ] || [ -n "$(find bundle ! -type f ! -type d)" ]; then
+            echo "bundle contains links or special files" >&2
+            exit 1
+          fi
+          if find bundle -type f | grep -qvE '^bundle/(status|log|terms/biosample/[a-z0-9.-]+\.json)$'; then
+            echo "bundle contains unexpected files" >&2
+            exit 1
+          fi
+          if [ "$(cat bundle/status)" != ok ]; then
+            echo "failed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report problems on the issue
+        if: steps.bundle.outputs.failed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          {
+            echo "The automatic check found problems with this proposal:"
+            echo
+            echo '```'
+            tr '`' "'" < bundle/log
+            echo '```'
+            echo
+            echo "Please open a new issue with the corrected proposal."
+          } > comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment.md
+          gh label create needs-changes --force
+          gh issue edit "$ISSUE_NUMBER" --add-label "needs-changes"
+
+      # Only trusted authors get an automatic branch and PR: anyone on GitHub can open an issue.
+      - name: Open draft pull request
+        if: "steps.bundle.outputs.failed != 'true' && contains(fromJSON('[\"OWNER\",\"MEMBER\",\"COLLABORATOR\"]'), github.event.issue.author_association)"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          LOG_FILE: bundle/log
+        run: |
+          BRANCH="metric/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
+          python3 scripts/term_proposal.py pr-body > pr-body.md
+          cp -R bundle/terms/. terms/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add terms
+          git -c core.hooksPath=/dev/null commit -m "feat(terms): proposal from issue #${ISSUE_NUMBER}"
+          git push origin "$BRANCH"
+          gh pr create --draft --base main --head "$BRANCH" \
+            --title "Propose metric (issue #${ISSUE_NUMBER})" \
+            --body-file pr-body.md
+
+      - name: Tell other authors a maintainer will take over
+        if: "steps.bundle.outputs.failed != 'true' && !contains(fromJSON('[\"OWNER\",\"MEMBER\",\"COLLABORATOR\"]'), github.event.issue.author_association)"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "The automatic check passed. A maintainer will review this proposal and take it from here."

@@ -15,13 +15,20 @@ python prism_tools.py terms propose --sidecar <your sidecar.json> --column <colu
 
 Without `--open` it only prints the proposal. You can also open the
 ["Propose a Metric" issue form](https://github.com/MRI-Lab-Graz/prism-specification/issues/new?template=propose-metric.yml) and paste a proposal by hand.
-A proposal is one JSON document, at most 20 KB:
+A proposal is one JSON document of at most 50,000 bytes (a GitHub form field holds 65,536 characters),
+in **format v2**: the files it adds, each under its repository path.
 
 ```json
-{"modality": "biosample", "terms": [<parent term>, <child term>]}
+{"format": "prism-proposal/2",
+ "files": {"terms/biosample/dhea-s.json": <parent term>,
+           "terms/biosample/dhea-s.saliva.json": <child term>}}
 ```
 
-* One or two terms: a parent and a child, or only a child when the analyte is already official.
+* Up to 40 files. Each key is a repository path of the form `terms/<modality>/<id>.json` (nothing else is
+  accepted), and the file name must equal the local part of the term's `TermID`.
+* A child term's `Parent` is either an official term or in the same proposal.
+* The older format `{"modality": "biosample", "terms": [...]}` is still accepted, limited to two terms.
+* A proposal too long for the prefilled link is pasted into the form's text field; nothing is attached.
 * Only `prism:` IDs, and none of the fields `Status` and `ReplacedBy` (the maintainer's merge sets them).
 * A bot checks it against the current registry (the same rules as below). For trusted authors it opens a
   draft pull request; for everyone else a maintainer takes over. The maintainers may choose a different

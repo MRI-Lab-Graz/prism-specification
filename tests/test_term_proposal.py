@@ -380,3 +380,28 @@ def test_v2_check_cli_failure_writes_no_files(tmp_path, monkeypatch):
 def test_v1_keeps_its_two_term_cap():
     extra = {**CHILD, "TermID": "prism:ferritin.plasma", "SpecimenType": "plasma"}
     assert any("at most 2" in p for p in _check(_proposal(PARENT, CHILD, extra))[1])
+
+
+# --- task A2: the paste path, the form and the docs describe format v2 ----------------------------
+
+def _forty():
+    return {"format": V2, "files": {f"terms/biosample/m{n}-x.json": {**PARENT, "TermID": f"prism:m{n}-x", "Label": f"m{n}x", "Aliases": [], "Description": "d" * 400}
+                                    for n in range(tp.MAX_FILES)}}
+
+
+def test_a_forty_term_proposal_pasted_into_the_form_passes_with_crlf_and_fences():
+    doc = _forty()
+    text = json.dumps(doc, indent=2)
+    assert 20_000 < len(text.encode("utf-8")) < tp.MAX_BYTES  # too big for the old limit and for a link, fine for the form
+    body = _body(text).replace("\n", "\r\n")
+    assert tp.extract_proposal(body) == doc
+    terms, problems = _check(tp.extract_proposal(body))
+    assert problems == [] and len(terms) == tp.MAX_FILES
+
+
+def test_the_form_and_contributing_describe_format_v2():
+    form = (REPO / ".github" / "ISSUE_TEMPLATE" / "propose-metric.yml").read_text(encoding="utf-8")
+    docs = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "one or two terms" not in form and "one or two terms" not in docs
+    assert V2 in docs and "terms/<modality>/<id>.json" in docs
+    assert str(tp.MAX_FILES) in docs and "50,000" in docs

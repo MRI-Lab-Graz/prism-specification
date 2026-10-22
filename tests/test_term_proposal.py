@@ -405,3 +405,52 @@ def test_the_form_and_contributing_describe_format_v2():
     assert "one or two terms" not in form and "one or two terms" not in docs
     assert V2 in docs and "terms/<modality>/<id>.json" in docs
     assert str(tp.MAX_FILES) in docs and "50,000" in docs
+
+
+# --- v1.2.1: a length cap on IDs, a bundle that is always written, a log that always fits ---------
+
+def test_ids_have_a_length_cap_per_segment():
+    ok = "a" * 63
+    assert _check(_v2(**{ok: {**PARENT, "TermID": f"prism:{ok}", "Label": "okaylong"}}))[1] == []
+    too_long = "a" * 64
+    path_problems = _check({"format": V2, "files": {f"terms/biosample/{too_long}.json": {**PARENT, "TermID": f"prism:{too_long}"}}})[1]
+    assert path_problems and any("path" in p for p in path_problems)
+    assert _check(_v2(**{"x_" + "b" * 64: {**CHILD, "TermID": "prism:x." + "b" * 64}}))[1]  # a long specimen part too
+    v1 = _check(_proposal({**PARENT, "TermID": f"prism:{too_long}"}))[1]
+    assert v1 and any("TermID" in p for p in v1)
+
+
+def test_an_over_long_id_is_a_failed_bundle_not_a_crash(tmp_path, monkeypatch):
+    long = "a" * 300
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps({"format": V2, "files": {f"terms/biosample/{long}.json": {**PARENT, "TermID": f"prism:{long}"}}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed" and not (out / "terms").exists()
+
+
+def test_a_failure_while_writing_the_files_is_a_failed_bundle(tmp_path, monkeypatch):
+    def boom(*args, **kwargs):
+        raise OSError("File name too long")
+
+    monkeypatch.setattr(tp, "write_terms", boom)
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps(_v2(ferritin=PARENT, ferritin_serum=CHILD)), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed"
+    assert "internal error" in (out / "log").read_text(encoding="utf-8")
+
+
+def test_the_log_always_fits_in_a_github_comment(tmp_path, monkeypatch):
+    key = "terms/biosample/" + "z" * 45_000 + ".json"
+    doc = {"format": V2, "files": {key: {**PARENT, **{f"Bad{n}": 1 for n in range(60)}}}}
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps(doc), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    log = (out / "log").read_text(encoding="utf-8")
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed"
+    assert len(log.encode("utf-8")) < 20_000, len(log)  # a comment is limited to 65,536 characters
+
+
+def test_the_form_names_the_command_for_many_metrics():
+    form = (REPO / ".github" / "ISSUE_TEMPLATE" / "propose-metric.yml").read_text(encoding="utf-8")
+    assert "spec propose --project" in form and "--all" in form

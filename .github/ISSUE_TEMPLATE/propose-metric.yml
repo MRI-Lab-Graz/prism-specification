@@ -13,6 +13,10 @@ body:
 
         `python prism_tools.py terms propose --sidecar <your sidecar.json> --column <column> --open`
 
+        To share several metrics you already use in your project at once, add them with
+        `python prism_tools.py spec local add-term ...` and then run
+        `python prism_tools.py spec propose --project <project> --all --open`.
+
         You can also paste a proposal below by hand. A proposal is one JSON document with up to 40
         term files (format `prism-proposal/2`, see CONTRIBUTING.md). A bot checks it against the registry and, if it is fine, a
         maintainer takes it from there. The maintainers may choose a different ID or name; IDs are

@@ -1,0 +1,9 @@
+{
+  "TermID": "prism:ferritin.serum",
+  "Level": "analyte-specimen",
+  "Parent": "prism:ferritin",
+  "SpecimenType": "serum",
+  "Units": "ug/L",
+  "MinValue": 0,
+  "Status": "official"
+}

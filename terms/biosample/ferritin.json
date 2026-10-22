@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:ferritin",
+  "Level": "analyte",
+  "Label": "ferritin",
+  "Aliases": [
+    "ferr_ugl"
+  ],
+  "Description": "Bot test (will be closed)",
+  "Status": "official"
+}

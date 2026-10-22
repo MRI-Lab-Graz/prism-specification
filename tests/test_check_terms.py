@@ -146,3 +146,7 @@ def test_cli_fails_on_a_broken_registry(tmp_path, capsys):
     (tmp_path / "x.json").write_text(json.dumps({"TermID": "foo:x"}), encoding="utf-8")
     assert _mod.main(["--terms", str(tmp_path), "--schema", str(SCHEMA)]) == 1
     assert "foo:x" in capsys.readouterr().out
+
+
+def test_specimen_types_reads_the_enum_from_the_schema():
+    assert _mod.specimen_types(SCHEMA) == SPECIMENS and "saliva" in SPECIMENS

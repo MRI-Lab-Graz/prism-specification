@@ -174,3 +174,10 @@ def test_a_string_in_aliases_does_not_claim_single_letters():
 def test_seed_terms_know_their_common_spellings():
     registry, _ = load_terms(TERMS)
     assert "il-6" in registry["il6"]["Aliases"] and "tnf-alpha" in registry["tnfa"]["Aliases"] and "hscrp" in registry["crp"]["Aliases"]
+
+
+def test_registry_ids_have_the_same_length_cap_as_proposals():
+    long = "a" * 64
+    reg = {long: _parent(long)}
+    assert any("local part" in p or "pattern" in p for p in check_registry(reg))
+    assert check_registry({"a" * 63: _parent("a" * 63, Label="short")}) == []

@@ -53,7 +53,7 @@ A term is one JSON file in `terms/<modality>/`, named after the local part of it
 Rules (CI enforces them with `python scripts/check_terms.py`):
 
 * IDs are `prism:<slug>` (or `bids:<name>` when the BIDS specification already
-  defines the concept); the slug is lowercase letters, digits and `-`; a child
+  defines the concept); the slug is lowercase letters, digits and `-` (at most 63 characters, also for the specimen part); a child
   is `<parent>.<specimen>`.
 * **An ID is frozen once released.** A wrong name is fixed by changing the
   `Label`, or by deprecating the term (`Status: deprecated`, `ReplacedBy`),

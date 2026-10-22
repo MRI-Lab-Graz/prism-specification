@@ -1,0 +1,9 @@
+{
+  "TermID": "prism:ferritin.plasma",
+  "Level": "analyte-specimen",
+  "Parent": "prism:ferritin",
+  "SpecimenType": "plasma",
+  "Units": "ug/L",
+  "MinValue": 0,
+  "Status": "official"
+}

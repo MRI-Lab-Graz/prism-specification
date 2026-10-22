@@ -6,8 +6,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "check_terms.py"
-SCHEMA = REPO / "app" / "schemas" / "stable" / "biosample.schema.json"
-TERMS = REPO / "official" / "library" / "terms" / "biosample"
+SCHEMA = REPO / "schemas" / "stable" / "biosample.schema.json"
+TERMS = REPO / "terms" / "biosample"
 
 
 def _load():

@@ -3,13 +3,13 @@ import json
 import subprocess
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "ci" / "check_schema_versions.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_schema_versions.py"
 spec = importlib.util.spec_from_file_location("check_schema_versions", SCRIPT)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 
-STABLE = "app/schemas/stable/survey.schema.json"
-ARCH = "app/schemas/archive/survey/1.0.0.schema.json"
+STABLE = "schemas/stable/survey.schema.json"
+ARCH = "schemas/archive/survey/1.0.0.schema.json"
 
 
 def _doc(version, extra=0):
@@ -59,7 +59,7 @@ def test_editing_or_deleting_an_archive_file_fails():
 
 
 def test_unrelated_changes_pass():
-    assert _run([("M", "docs/index.rst"), ("M", "app/schemas/stable/project.schema.json")]) == []
+    assert _run([("M", "docs/index.rst"), ("M", "schemas/stable/project.schema.json")]) == []
 
 
 def test_unreadable_version_in_head_fails():
@@ -99,7 +99,7 @@ def _repo(tmp_path, monkeypatch):
     repo.mkdir()
     _git(repo, "init", "-q")
     monkeypatch.chdir(repo)
-    stable = repo / "app/schemas/stable"
+    stable = repo / "schemas/stable"
     stable.mkdir(parents=True)
     (stable / "entities.schema.json").write_text(json.dumps({"modalities": {"survey": {}}}))
     return repo
@@ -107,11 +107,11 @@ def _repo(tmp_path, monkeypatch):
 
 def test_git_mv_of_archived_file_is_rejected(tmp_path, monkeypatch, capsys):
     repo = _repo(tmp_path, monkeypatch)
-    archive = repo / "app/schemas/archive/survey"
+    archive = repo / "schemas/archive/survey"
     archive.mkdir(parents=True)
     (archive / "1.0.0.schema.json").write_text(_doc("1.0.0"))
     _commit_all(repo, "base")
-    _git(repo, "mv", "app/schemas/archive/survey/1.0.0.schema.json", "app/schemas/archive/survey/moved.schema.json")
+    _git(repo, "mv", "schemas/archive/survey/1.0.0.schema.json", "schemas/archive/survey/moved.schema.json")
     _commit_all(repo, "move archive")
 
     assert mod.main(["x", "HEAD~1", "HEAD"]) == 1
@@ -120,7 +120,7 @@ def test_git_mv_of_archived_file_is_rejected(tmp_path, monkeypatch, capsys):
 
 def test_missing_entities_schema_fails_loudly(tmp_path, monkeypatch, capsys):
     repo = _repo(tmp_path, monkeypatch)
-    (repo / "app/schemas/stable/entities.schema.json").unlink()
+    (repo / "schemas/stable/entities.schema.json").unlink()
     (repo / "README.md").write_text("x")
     _commit_all(repo, "base")
     (repo / "README.md").write_text("y")

@@ -1,4 +1,4 @@
-"""docs/specs/*.md field tables are generated from app/schemas/stable; they must not drift.
+"""specs/*.md field tables are generated from schemas/stable; they must not drift.
 
 Fix a failure with: python scripts/generate_schema_reference.py
 """
@@ -47,7 +47,7 @@ def test_rows_list_nested_fields_with_required_and_enum():
 def test_every_documented_schema_has_a_page_with_markers():
     gen = _load()
     for schema_name, page in gen.PAGES.items():
-        text = (REPO_ROOT / "docs" / "specs" / page).read_text(encoding="utf-8")
+        text = (REPO_ROOT / "specs" / page).read_text(encoding="utf-8")
         assert (
             gen.BEGIN in text and gen.END in text
         ), f"{page} lacks generated block for {schema_name}"
@@ -66,7 +66,7 @@ def test_every_schema_has_a_page_or_is_listed_elsewhere():
     gen = _load()
     schemas = {
         p.name.replace(".schema.json", "")
-        for p in (REPO_ROOT / "app/schemas/stable").glob("*.schema.json")
+        for p in (REPO_ROOT / "schemas/stable").glob("*.schema.json")
     }
     assert schemas - set(gen.PAGES) <= gen.OTHER_DOCS, schemas - set(gen.PAGES)
 

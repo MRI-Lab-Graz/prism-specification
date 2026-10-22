@@ -1,7 +1,7 @@
 """Check and write a proposal for new terms (metrics).
 
 A proposal is one JSON document, sent through the "Propose a metric" issue form or saved
-to a file by `prism_tools.py terms propose` in PRISM Studio:
+to a file with `prism_tools.py terms propose ... --out proposal.json` in PRISM Studio:
 
   {"modality": "biosample", "terms": [<parent term>, <child term>]}
 

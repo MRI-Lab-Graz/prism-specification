@@ -26,7 +26,8 @@ A proposal is one JSON document, at most 20 KB:
 * A bot checks it against the current registry (the same rules as below). For trusted authors it opens a
   draft pull request; for everyone else a maintainer takes over. The maintainers may choose a different
   ID or name; your own column name is kept as an alias.
-* No GitHub account: save the proposal to a file and send it to a maintainer, who can run
+* No GitHub account: save the proposal with `--out proposal.json` (the same command, add `--out`) and send the
+  file to a maintainer, who can run
   `python scripts/term_proposal.py check --file proposal.json --terms terms/biosample --schema schemas/stable/biosample.schema.json --out bundle`.
 
 ## Proposing a new metric (term)

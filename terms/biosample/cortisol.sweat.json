@@ -1,0 +1,8 @@
+{
+  "TermID": "prism:cortisol.sweat",
+  "Level": "analyte-specimen",
+  "Parent": "prism:cortisol",
+  "SpecimenType": "sweat",
+  "Units": "ng/mL",
+  "Status": "official"
+}

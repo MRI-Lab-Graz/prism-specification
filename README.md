@@ -6,7 +6,7 @@ modality, the term registry and the specification pages.
 
 | Folder | Content |
 | --- | --- |
-| `schemas/stable/` | The current schema of each modality (`survey`, `biometrics`, `biosample`, `environment`, `events`, `eyetracking`, `physio`) plus `entities` (filename grammar) and `dataset_description` |
+| `schemas/stable/` | The current schema of each modality (`survey`, `biometrics`, `biosample`, `environment`, `events`, `physio`) plus `entities` (filename grammar) and `dataset_description` |
 | `schemas/archive/` | Every released older version of a modality schema, frozen |
 | `schemas/v0.1/`, `schemas/v0.2/` | Legacy schema bundles |
 | `terms/<modality>/` | The term registry: one JSON file per metric (`prism:cortisol`, `prism:cortisol.saliva`) |

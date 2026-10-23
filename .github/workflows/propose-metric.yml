@@ -62,11 +62,16 @@ jobs:
             echo "bundle contains links or special files" >&2
             exit 1
           fi
+          # exactly these shapes: the result of the check, term files, and the files of a schema release
+          slug='[a-z][a-z0-9-]{0,62}'
+          re_term="^bundle/files/terms/[a-z][a-z0-9]*/${slug}(\.${slug})?\.json$"
+          re_stable='^bundle/files/schemas/stable/[a-z][a-z0-9]*\.schema\.json$'
+          re_archive='^bundle/files/schemas/archive/[a-z][a-z0-9]*/[0-9]+\.[0-9]+\.[0-9]+\.schema\.json$'
+          re_spec='^bundle/files/specs/[a-z][a-z0-9]*\.md$'
           # NUL-separated, so a newline inside a file or folder name cannot pose as two allowed lines
           while IFS= read -r -d '' f; do
-            name="${f#bundle/terms/biosample/}"
             if [[ "$f" == bundle/status || "$f" == bundle/log ]]; then continue; fi
-            if [[ "$f" == bundle/terms/biosample/* && "$name" =~ ^[a-z0-9.-]+\.json$ ]]; then continue; fi
+            if [[ "$f" =~ $re_term || "$f" =~ $re_stable || "$f" =~ $re_archive || "$f" =~ $re_spec ]]; then continue; fi
             echo "bundle contains unexpected files" >&2
             exit 1
           done < <(find bundle -type f -print0)
@@ -101,12 +106,13 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           BRANCH="metric/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
+          if [ -d bundle/files/schemas ]; then export SCHEMA_RELEASE=1; fi
           python3 scripts/term_proposal.py pr-body > pr-body.md
-          cp -R bundle/terms/. terms/
+          cp -R bundle/files/. .
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add terms
+          git add terms schemas specs
           git -c core.hooksPath=/dev/null commit -m "feat(terms): proposal from issue #${ISSUE_NUMBER}"
           git push origin "$BRANCH"
           gh pr create --draft --base main --head "$BRANCH" \

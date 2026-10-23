@@ -121,35 +121,59 @@ def validate_patch(patch, schema: dict) -> list[str]:
     return problems
 
 
+def additions(schema: dict, patch) -> tuple[list[dict], list[str]]:
+    """What the patch really adds to `schema` (in order, each value once), and a note per addition it already had.
+
+    [{"kind": "enum", "path": ..., "values": [...]} | {"kind": "properties", "path": ..., "properties": {...}}].
+    PatchError when the patch is invalid or adds nothing. The one decision both apply_patch and the release use.
+    """
+    problems = validate_patch(patch, schema)
+    if problems:
+        raise PatchError("; ".join(problems))
+    adds: list[dict] = []
+    notes: list[str] = []
+    planned: dict[str, set] = {}  # what earlier operations of this patch already add, per path
+    for op in patch["operations"]:
+        node = _resolve(schema, op["path"])
+        seen = planned.setdefault(f"{op['op']}:{op['path']}", set())
+        if op["op"] == "add_enum_values":
+            new = []
+            for value in op["values"]:
+                if value in node["enum"] or value in seen:
+                    notes.append(f"{op['path']}: {value!r} is already official")
+                else:
+                    new.append(value)
+                    seen.add(value)
+            if new:
+                adds.append({"kind": "enum", "path": op["path"], "values": new})
+        else:
+            new_properties = {}
+            for name, definition in op["properties"].items():
+                if name in node["properties"] or name in seen:
+                    notes.append(f"{op['path']}.{name} is already official")
+                else:
+                    new_properties[name] = definition
+                    seen.add(name)
+            if new_properties:
+                adds.append({"kind": "properties", "path": op["path"], "properties": new_properties})
+    if not adds:
+        raise PatchError("nothing to add: " + ("; ".join(notes) or "the patch is empty"))
+    return adds, notes
+
+
 def apply_patch(schema: dict, patch) -> tuple[dict, list[str]]:
     """A deep copy of `schema` with the patch applied, and one note per addition the schema already had.
 
     Only adds. PatchError when the patch is invalid or when nothing is left to add.
     """
-    problems = validate_patch(patch, schema)
-    if problems:
-        raise PatchError("; ".join(problems))
+    adds, notes = additions(schema, patch)
     patched = copy.deepcopy(schema)
-    notes: list[str] = []
-    added = 0
-    for op in patch["operations"]:
-        node = _resolve(patched, op["path"])
-        if op["op"] == "add_enum_values":
-            for value in op["values"]:
-                if value in node["enum"]:
-                    notes.append(f"{op['path']}: {value!r} is already official")
-                else:
-                    node["enum"].append(value)
-                    added += 1
+    for add in adds:
+        node = _resolve(patched, add["path"])
+        if add["kind"] == "enum":
+            node["enum"].extend(add["values"])
         else:
-            for name, definition in op["properties"].items():
-                if name in node["properties"]:
-                    notes.append(f"{op['path']}.{name} is already official")
-                else:
-                    node["properties"][name] = copy.deepcopy(definition)
-                    added += 1
-    if not added:
-        raise PatchError("nothing to add: " + ("; ".join(notes) or "the patch is empty"))
+            node["properties"].update(copy.deepcopy(add["properties"]))
     return patched, notes
 
 

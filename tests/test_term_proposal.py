@@ -451,6 +451,13 @@ def test_the_log_always_fits_in_a_github_comment(tmp_path, monkeypatch):
     assert len(log.encode("utf-8")) < 20_000, len(log)  # a comment is limited to 65,536 characters
 
 
+def test_contributing_documents_schema_patches():
+    docs = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    for needle in ("patches/<modality>.json", "add_enum_values", "add_optional_properties", "minor version", "archive", "in place"):
+        assert needle in docs, needle
+    assert "re-serialized" not in docs
+
+
 def test_the_form_names_the_command_for_many_metrics():
     form = (REPO / ".github" / "ISSUE_TEMPLATE" / "propose-metric.yml").read_text(encoding="utf-8")
     assert "spec propose --project" in form and "--all" in form
@@ -556,7 +563,8 @@ def test_the_pull_request_text_of_a_schema_release_asks_for_the_version_review()
     plain = tp.pr_body(5)
     release = tp.pr_body(5, schema_release=True)
     assert "version" not in plain.lower() and "archive" not in plain.lower()
-    assert "version" in release.lower() and "archive" in release.lower() and "re-serial" in release.lower()
+    assert "version" in release.lower() and "archive" in release.lower()
+    assert "in place" in release.lower() and "re-serial" not in release.lower()  # the schema file keeps its formatting
 
 
 def test_pr_body_cli_reads_schema_release_from_the_environment(monkeypatch, capsys):

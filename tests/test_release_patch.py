@@ -110,3 +110,81 @@ def test_an_unknown_modality_is_an_error(tree, tmp_path):
         rp.release(tree, tmp_path / "out", "../x", PATCH)
     with pytest.raises(rp.ReleaseError, match="no schema"):
         rp.release(tree, tmp_path / "out", "nosuchmodality", PATCH)
+
+
+def test_the_released_schema_keeps_the_file_style_so_the_diff_is_small(tree):
+    """A reviewer should see the added value and the version bump, not a re-formatted file."""
+    import difflib
+
+    path = tree / "schemas" / "stable" / "biosample.schema.json"
+    before = path.read_text(encoding="utf-8").splitlines()
+    rp.release(tree, tree, "biosample", PATCH)
+    after = path.read_text(encoding="utf-8").splitlines()
+    changed = [line for line in difflib.unified_diff(before, after, lineterm="", n=0) if line[:1] in "+-" and line[:3] not in ("+++", "---")]
+    assert len(changed) <= 8, "\n".join(changed[:20])
+
+
+# --- surgical edits: the file's own formatting stays, whatever it is ------------------------------------
+
+def _released(tree, patch=PATCH, rewrite=None):
+    path = tree / "schemas" / "stable" / "biosample.schema.json"
+    if rewrite:
+        path.write_text(rewrite(path.read_text(encoding="utf-8")), encoding="utf-8")
+    original = json.loads(path.read_text(encoding="utf-8"))
+    rp.release(tree, tree, "biosample", patch)
+    return original, path.read_text(encoding="utf-8")
+
+
+def _expected(original, patch):
+    expected, _notes = sp.apply_patch(original, patch)
+    major, minor, _p = map(int, original["version"].split("."))
+    expected["version"] = f"{major}.{minor + 1}.0"
+    expected["$id"] = original["$id"][: -len(original["version"])] + expected["version"]
+    return expected
+
+
+PROP_PATCH = {"operations": [
+    {"op": "add_enum_values", "path": "Technical.SpecimenType", "values": ["sweat", "tears"]},
+    {"op": "add_optional_properties", "path": "Technical", "properties": {"SweatRate": {"type": "number", "description": "mg/min"}}},
+    {"op": "add_enum_values", "path": "Technical.CollectionMethod", "values": ["wipe"]},
+]}
+
+
+def _lines_changed(before: str, after: str) -> int:
+    import difflib
+
+    return len([l for l in difflib.unified_diff(before.splitlines(), after.splitlines(), lineterm="", n=0) if l[:1] in "+-" and l[:3] not in ("+++", "---")])
+
+
+def test_the_edited_file_means_exactly_what_the_applied_patch_means(tree):
+    original, text = _released(tree, PROP_PATCH)
+    assert json.loads(text) == _expected(original, PROP_PATCH)
+
+
+def test_a_property_is_inserted_in_the_style_of_its_neighbours(tree):
+    before = (tree / "schemas" / "stable" / "biosample.schema.json").read_text(encoding="utf-8")
+    _, text = _released(tree, PROP_PATCH)
+    assert _lines_changed(before, text) <= 12  # version, $id, three enum edits and one property: not the whole file
+    assert '"SweatRate": {' in text and text.count("\n") - before.count("\n") <= 6
+
+
+def test_a_multi_line_enum_array_is_extended_in_place(tree):
+    def spread(text):
+        return text.replace('"enum": ["whole-blood", "serum",', '"enum": [\n            "whole-blood", "serum",', 1).replace('"csf", "other"]', '"csf",\n            "other"\n          ]', 1)
+
+    original, text = _released(tree, PATCH, rewrite=spread)
+    assert json.loads(text) == _expected(original, PATCH)
+    assert '"other",\n            "sweat"\n          ]' in text
+
+
+def test_an_unusual_layout_falls_back_to_a_full_rewrite_that_is_still_correct(tree):
+    original, text = _released(tree, PROP_PATCH, rewrite=lambda t: json.dumps(json.loads(t), separators=(",", ":")))  # minified: one line
+    assert json.loads(text) == _expected(original, PROP_PATCH)
+
+
+def test_an_odd_but_valid_layout_is_handled(tree):
+    def odd(text):  # tabs, CRLF, and spaces around colons
+        return json.dumps(json.loads(text), indent="\t").replace("\n", "\r\n").replace('": ', '" : ')
+
+    original, text = _released(tree, PROP_PATCH, rewrite=odd)
+    assert json.loads(text) == _expected(original, PROP_PATCH)

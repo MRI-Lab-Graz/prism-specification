@@ -112,3 +112,15 @@ def test_the_patch_never_touches_required_or_other_keys():
     new, _ = sp.apply_patch(SCHEMA, _patch(ENUM, PROP))
     assert new["required"] == SCHEMA["required"] and new["properties"]["Technical"]["required"] == SCHEMA["properties"]["Technical"]["required"]
     assert {k: v for k, v in new.items() if k != "properties"} == {k: v for k, v in SCHEMA.items() if k != "properties"}
+
+
+def test_additions_lists_exactly_what_will_be_added_once():
+    adds, notes = sp.additions(SCHEMA, _patch({**ENUM, "values": ["saliva", "sweat", "tears"]}, {**ENUM, "values": ["sweat", "wipe"]}, PROP))
+    assert adds == [
+        {"kind": "enum", "path": "Technical.SpecimenType", "values": ["sweat", "tears"]},
+        {"kind": "enum", "path": "Technical.SpecimenType", "values": ["wipe"]},
+        {"kind": "properties", "path": "Technical", "properties": PROP["properties"]},
+    ]
+    assert any("saliva" in n for n in notes) and any("sweat" in n for n in notes)
+    with pytest.raises(sp.PatchError, match="nothing to add"):
+        sp.additions(SCHEMA, _patch({**ENUM, "values": ["saliva"]}))

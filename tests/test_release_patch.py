@@ -63,9 +63,9 @@ def test_the_released_tree_passes_the_repository_checks(tree):
     rp.release(tree, tree, "biosample", PATCH)
     _git(tree, "add", "-A")
     _git(tree, "commit", "-q", "-m", "release")
-    versions = subprocess.run([sys.executable, str(tree / "scripts" / "check_schema_versions.py"), "HEAD~1", "HEAD"], capture_output=True, text=True)
+    versions = subprocess.run([sys.executable, str(tree / "scripts" / "check_schema_versions.py"), "HEAD~1", "HEAD"], capture_output=True, text=True, cwd=tree)
     assert versions.returncode == 0, versions.stdout + versions.stderr
-    tables = subprocess.run([sys.executable, str(tree / "scripts" / "generate_schema_reference.py"), "--check"], capture_output=True, text=True)
+    tables = subprocess.run([sys.executable, str(tree / "scripts" / "generate_schema_reference.py"), "--check"], capture_output=True, text=True, cwd=tree)
     assert tables.returncode == 0, tables.stdout + tables.stderr
 
 

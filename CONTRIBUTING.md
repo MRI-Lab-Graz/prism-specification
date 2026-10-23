@@ -37,6 +37,34 @@ in **format v2**: the files it adds, each under its repository path.
   file to a maintainer, who can run
   `python scripts/term_proposal.py check --file proposal.json --terms terms/biosample --schema schemas/stable/biosample.schema.json --out bundle`.
 
+## Proposing an addition to a modality (schema patch)
+
+Sometimes your data needs something an existing modality does not allow yet: a specimen type that is not
+in the list, or an extra optional field. A proposal can carry a **patch** for that, as the file
+`patches/<modality>.json` of a format v2 document (only `biosample` has patches so far):
+
+```json
+{"operations": [
+  {"op": "add_enum_values", "path": "Technical.SpecimenType", "values": ["sweat"]},
+  {"op": "add_optional_properties", "path": "Technical",
+   "properties": {"SweatRate": {"type": "number", "description": "Sweat rate in mg/min"}}}]}
+```
+
+* Only additions, with tight limits: at most 20 operations; `add_enum_values` takes at most 20 values
+  (lowercase letters, digits and `-`); `add_optional_properties` takes at most 20 properties named like
+  `SweatRate`, each with a `type` (`string`, `number`, `integer` or `boolean`) and optionally a
+  `description` and an `enum`. Nothing else is accepted, and nothing is ever removed or made required.
+* `path` is the dotted name of the field in a sidecar (`Technical.SpecimenType`).
+* Values or properties the schema already has are skipped; a patch that adds nothing is refused.
+* A term that uses a specimen added by the patch in the same proposal is checked against the extended list.
+* The bot prepares the schema release for the maintainer: the previous schema is copied unchanged to
+  `schemas/archive/`, the stable schema gets the additions and a bumped minor version (and `$id`), and the
+  field tables of the spec page are regenerated. The stable schema file is edited in place, so its diff
+  shows only the new version, the new `$id` and the additions. CI then runs the same version check as for
+  any schema change.
+* Check a patch yourself with `python scripts/term_proposal.py check --file proposal.json --terms
+  terms/biosample --schema schemas/stable/biosample.schema.json --out bundle`.
+
 ## Proposing a new metric (term)
 
 A term is one JSON file in `terms/<modality>/`, named after the local part of its ID.

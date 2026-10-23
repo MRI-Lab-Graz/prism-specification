@@ -153,7 +153,7 @@ def _run(tmp_path, monkeypatch, body=None, file=None, proposal=None):
 def test_check_cli_with_issue_body_env_writes_an_ok_bundle(tmp_path, monkeypatch):
     code, out = _run(tmp_path, monkeypatch, body=_body(_proposal(PARENT, CHILD)))
     assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok"
-    assert (out / "terms" / "biosample" / "ferritin.json").is_file()
+    assert (out / "files" / "terms" / "biosample" / "ferritin.json").is_file()
     assert (out / "log").read_text(encoding="utf-8") == ""
 
 
@@ -161,7 +161,7 @@ def test_check_cli_failure_writes_status_failed_and_the_reasons(tmp_path, monkey
     code, out = _run(tmp_path, monkeypatch, body=_body(_proposal({**PARENT, "Status": "official"}, CHILD)))
     assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed"
     assert "Status" in (out / "log").read_text(encoding="utf-8")
-    assert not (out / "terms").exists()
+    assert not (out / "files").exists()
 
 
 def test_check_cli_bad_body_is_a_failed_bundle_not_a_crash(tmp_path, monkeypatch):
@@ -174,7 +174,7 @@ def test_check_cli_file_mode_equals_issue_mode(tmp_path, monkeypatch):
     f.write_text(json.dumps(_proposal(PARENT, CHILD)), encoding="utf-8")
     code, out = _run(tmp_path, monkeypatch, file=f)
     assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok"
-    assert json.loads((out / "terms/biosample/ferritin.serum.json").read_text(encoding="utf-8"))["Units"] == "ug/L"
+    assert json.loads((out / "files/terms/biosample/ferritin.serum.json").read_text(encoding="utf-8"))["Units"] == "ug/L"
 
 
 def test_check_cli_file_mode_rejects_oversize_and_non_json(tmp_path, monkeypatch):
@@ -365,7 +365,7 @@ def test_v2_check_cli_writes_the_files_at_their_paths(tmp_path, monkeypatch):
     f.write_text(json.dumps(doc), encoding="utf-8")
     code, out = _run(tmp_path, monkeypatch, file=f)
     assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok"
-    written = sorted(p.relative_to(out).as_posix() for p in (out / "terms").rglob("*.json"))
+    written = sorted(p.relative_to(out / "files").as_posix() for p in (out / "files").rglob("*.json"))
     assert written == ["terms/biosample/ferritin.json", "terms/biosample/ferritin.plasma.json", "terms/biosample/ferritin.serum.json"]
 
 
@@ -373,7 +373,7 @@ def test_v2_check_cli_failure_writes_no_files(tmp_path, monkeypatch):
     f = tmp_path / "proposal.json"
     f.write_text(json.dumps({"format": V2, "files": {"schemas/stable/x.json": PARENT}}), encoding="utf-8")
     code, out = _run(tmp_path, monkeypatch, file=f)
-    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed" and not (out / "terms").exists()
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed" and not (out / "files").exists()
     assert "schemas/stable/x.json" in (out / "log").read_text(encoding="utf-8")
 
 
@@ -425,7 +425,7 @@ def test_an_over_long_id_is_a_failed_bundle_not_a_crash(tmp_path, monkeypatch):
     f = tmp_path / "p.json"
     f.write_text(json.dumps({"format": V2, "files": {f"terms/biosample/{long}.json": {**PARENT, "TermID": f"prism:{long}"}}}), encoding="utf-8")
     code, out = _run(tmp_path, monkeypatch, file=f)
-    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed" and not (out / "terms").exists()
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed" and not (out / "files").exists()
 
 
 def test_a_failure_while_writing_the_files_is_a_failed_bundle(tmp_path, monkeypatch):
@@ -451,6 +451,123 @@ def test_the_log_always_fits_in_a_github_comment(tmp_path, monkeypatch):
     assert len(log.encode("utf-8")) < 20_000, len(log)  # a comment is limited to 65,536 characters
 
 
+def test_contributing_documents_schema_patches():
+    docs = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    for needle in ("patches/<modality>.json", "add_enum_values", "add_optional_properties", "minor version", "archive", "in place"):
+        assert needle in docs, needle
+    assert "re-serialized" not in docs
+
+
 def test_the_form_names_the_command_for_many_metrics():
     form = (REPO / ".github" / "ISSUE_TEMPLATE" / "propose-metric.yml").read_text(encoding="utf-8")
     assert "spec propose --project" in form and "--all" in form
+
+
+# --- schema patches in proposals (layer 2): the bot prepares the schema release --------------------------
+
+SWEAT = {"operations": [{"op": "add_enum_values", "path": "Technical.SpecimenType", "values": ["sweat"]}]}
+OLD_VERSION = json.loads(SCHEMA.read_text(encoding="utf-8"))["version"]
+
+
+def _with_patch(patch=SWEAT, **files):
+    doc = _v2(**files)
+    doc["files"]["patches/biosample.json"] = patch
+    return doc
+
+
+def _stable_bytes():
+    return SCHEMA.read_bytes()
+
+
+def test_a_patch_only_proposal_prepares_the_schema_release(tmp_path, monkeypatch):
+    before = _stable_bytes()
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps({"format": V2, "files": {"patches/biosample.json": SWEAT}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok", (out / "log").read_text(encoding="utf-8")
+    files = sorted(p.relative_to(out / "files").as_posix() for p in (out / "files").rglob("*") if p.is_file())
+    assert files == [f"schemas/archive/biosample/{OLD_VERSION}.schema.json", "schemas/stable/biosample.schema.json", "specs/biosample.md"]
+    assert _stable_bytes() == before  # the checkout is only read
+    released = json.loads((out / "files" / "schemas" / "stable" / "biosample.schema.json").read_text(encoding="utf-8"))
+    assert "sweat" in released["properties"]["Technical"]["properties"]["SpecimenType"]["enum"] and released["version"] != OLD_VERSION
+
+
+def test_a_child_term_on_the_new_specimen_is_checked_against_the_patched_enum(tmp_path, monkeypatch):
+    parent = {**PARENT, "TermID": "prism:sweatmarker", "Label": "sweatmarker", "Aliases": []}
+    child = {**CHILD, "TermID": "prism:sweatmarker.sweat", "Parent": "prism:sweatmarker", "SpecimenType": "sweat"}
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps(_with_patch(sweatmarker=parent, sweatmarker_sweat=child)), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert (out / "status").read_text(encoding="utf-8").strip() == "ok", (out / "log").read_text(encoding="utf-8")
+    assert (out / "files" / "terms" / "biosample" / "sweatmarker.sweat.json").is_file()
+    # without the patch the same term is refused: sweat is not a specimen type
+    g = tmp_path / "q.json"
+    g.write_text(json.dumps(_v2(sweatmarker=parent, sweatmarker_sweat=child)), encoding="utf-8")
+    (tmp_path / "x").mkdir()
+    _, out2 = _run(tmp_path / "x", monkeypatch, file=g)
+    assert (out2 / "status").read_text(encoding="utf-8").strip() == "failed" and "sweat" in (out2 / "log").read_text(encoding="utf-8")
+
+
+def test_check_proposal_needs_the_schema_to_check_a_patch():
+    doc = {"format": V2, "files": {"patches/biosample.json": SWEAT}}
+    _, problems = tp.check_proposal(doc, REGISTRY, SPECIMENS)
+    assert any("schema" in p for p in problems)
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    assert tp.check_proposal(doc, REGISTRY, SPECIMENS, schema)[1] == []
+
+
+@pytest.mark.parametrize(
+    "files",
+    [
+        {"patches/other.json": SWEAT}, {"patches/biosample/x.json": SWEAT}, {"patches/biosample.json/../x": SWEAT},
+        {"patches/Biosample.json": SWEAT}, {"patches/biosample.json\n": SWEAT}, {"patches/biosample.json": "x"},
+        {"patches/biosample.json": [SWEAT]}, {"patches/.json": SWEAT},
+    ],
+)
+def test_patch_paths_outside_the_allow_list_are_rejected(files):
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    terms, problems = tp.check_proposal({"format": V2, "files": files}, REGISTRY, SPECIMENS, schema)
+    assert terms == [] and problems
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"operations": [{"op": "remove_enum_values", "path": "Technical.SpecimenType", "values": ["serum"]}]},
+        {"operations": [{"op": "add_enum_values", "path": "Technical.SpecimenType", "values": ["serum"]}]},  # nothing to add
+        {"operations": [{"op": "add_enum_values", "path": "Technical.SpecimenType", "values": ["Sweat"]}]},
+        {"operations": []}, {"extra": 1, "operations": SWEAT["operations"]},
+    ],
+)
+def test_a_bad_patch_is_a_failed_bundle_with_the_reason(tmp_path, monkeypatch, patch):
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps({"format": V2, "files": {"patches/biosample.json": patch}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed" and not (out / "files").exists()
+    assert "ERROR:" in (out / "log").read_text(encoding="utf-8")
+
+
+def test_a_failure_while_preparing_the_release_is_a_failed_bundle(tmp_path, monkeypatch):
+    def boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(tp.release_patch, "release", boom)
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps({"format": V2, "files": {"patches/biosample.json": SWEAT}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert (out / "status").read_text(encoding="utf-8").strip() == "failed" and "internal error" in (out / "log").read_text(encoding="utf-8")
+    assert not (out / "files").exists()
+
+
+def test_the_pull_request_text_of_a_schema_release_asks_for_the_version_review():
+    plain = tp.pr_body(5)
+    release = tp.pr_body(5, schema_release=True)
+    assert "version" not in plain.lower() and "archive" not in plain.lower()
+    assert "version" in release.lower() and "archive" in release.lower()
+    assert "in place" in release.lower() and "re-serial" not in release.lower()  # the schema file keeps its formatting
+
+
+def test_pr_body_cli_reads_schema_release_from_the_environment(monkeypatch, capsys):
+    monkeypatch.setenv("ISSUE_NUMBER", "3")
+    monkeypatch.setenv("SCHEMA_RELEASE", "1")
+    assert tp.main(["pr-body"]) == 0 and "archive" in capsys.readouterr().out.lower()

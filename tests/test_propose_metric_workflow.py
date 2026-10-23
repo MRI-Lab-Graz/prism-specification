@@ -84,7 +84,7 @@ def _verify_script():
 
 
 def _bundle(root: Path, extra=()):
-    folder = root / "bundle" / "terms" / "biosample"
+    folder = root / "bundle" / "files" / "terms" / "biosample"
     folder.mkdir(parents=True)
     (root / "bundle" / "status").write_text("ok\n", encoding="utf-8")
     (root / "bundle" / "log").write_text("", encoding="utf-8")
@@ -105,7 +105,17 @@ def test_verify_step_accepts_a_good_bundle(tmp_path):
     assert _verify(_bundle(tmp_path)).returncode == 0
 
 
-@pytest.mark.parametrize("extra", [("extra.txt",), ("terms/biosample/..evil",), ("terms/other/x.json",), ("terms/biosample/UPPER.json",)])
+@pytest.mark.parametrize("extra", [
+    ("extra.txt",), ("files/extra.txt",), ("files/terms/biosample/..evil",), ("files/terms/biosample/UPPER.json",),
+    ("files/terms/biosample/" + "a" * 64 + ".json",), ("files/terms/biosample/a.b.c.json",),
+    ("terms/biosample/ferritin.json",),  # the layout before schema patches: not accepted any more
+    ("files/scripts/term_proposal.py",), ("files/.github/workflows/x.yml",), ("files/CODEOWNERS",), ("files/LICENSE",),
+    ("files/schemas/stable/biosample.json",), ("files/schemas/stable/UPPER.schema.json",), ("files/schemas/stable/x/y.schema.json",),
+    ("files/schemas/stable/../x.schema.json",), ("files/schemas/v0.2/biosample.schema.json",),
+    ("files/schemas/archive/biosample/latest.schema.json",), ("files/schemas/archive/biosample/1.2.schema.json",),
+    ("files/schemas/archive/biosample/1.2.0.schema.json.bak",), ("files/schemas/archive/1.2.0.schema.json",),
+    ("files/specs/x/y.md",), ("files/specs/biosample.txt",), ("files/specs/UPPER.md",), ("files/specs/.md",),
+])
 def test_verify_step_rejects_unexpected_files(tmp_path, extra):
     result = _verify(_bundle(tmp_path, extra))
     assert result.returncode != 0 and "unexpected files" in result.stderr
@@ -120,7 +130,7 @@ def test_verify_step_rejects_symlinks(tmp_path):
 def test_verify_step_rejects_newline_tricks_in_directory_names(tmp_path):
     # find prints this one path as two lines, each of which looks like an allowed file
     root = _bundle(tmp_path)
-    trick = root / "bundle" / "terms" / "biosample" / "x.json\nbundle"
+    trick = root / "bundle" / "files" / "terms" / "biosample" / "x.json\nbundle"
     trick.mkdir()
     (trick / "status").write_text("x\n", encoding="utf-8")
     result = _verify(root)
@@ -130,3 +140,31 @@ def test_verify_step_rejects_newline_tricks_in_directory_names(tmp_path):
 def test_pr_step_no_longer_passes_a_log_file():
     step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "draft" in s.get("name", "").lower())
     assert "LOG_FILE" not in step.get("env", {})
+
+
+# --- schema releases: the bundle may also hold the archive, the stable schema and the spec page ---------
+
+@pytest.mark.parametrize("extra", [
+    ("files/schemas/stable/biosample.schema.json",),
+    ("files/schemas/archive/biosample/1.2.0.schema.json",),
+    ("files/specs/biosample.md",),
+    ("files/terms/biosample/ferritin.serum.json",),
+    ("files/schemas/stable/biosample.schema.json", "files/schemas/archive/biosample/1.2.0.schema.json", "files/specs/biosample.md"),
+])
+def test_verify_step_accepts_the_files_of_a_schema_release(tmp_path, extra):
+    result = _verify(_bundle(tmp_path, extra))
+    assert result.returncode == 0, result.stderr
+
+
+def test_the_pull_request_step_copies_only_the_verified_files_and_marks_schema_releases():
+    step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "draft" in s.get("name", "").lower())
+    script = step["run"]
+    assert "cp -R bundle/files/. ." in script and "bundle/terms" not in script
+    assert "git add terms schemas specs" in script
+    assert "SCHEMA_RELEASE" in script and "bundle/files/schemas" in script
+    assert script.index("pr-body") > script.index("SCHEMA_RELEASE")  # the marker is set before the text is written
+
+
+def test_the_failure_comment_reads_the_log_of_the_bundle():
+    step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "problems" in s.get("name", "").lower())
+    assert "bundle/log" in step["run"]

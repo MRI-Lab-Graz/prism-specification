@@ -571,3 +571,40 @@ def test_pr_body_cli_reads_schema_release_from_the_environment(monkeypatch, caps
     monkeypatch.setenv("ISSUE_NUMBER", "3")
     monkeypatch.setenv("SCHEMA_RELEASE", "1")
     assert tp.main(["pr-body"]) == 0 and "archive" in capsys.readouterr().out.lower()
+
+
+# --- a patch may target any modality's lists -------------------------------------------------------------
+
+LICENSE = {"operations": [{"op": "add_enum_values", "path": "Study.LicenseID", "values": ["cc-by-nc-local"]}]}
+
+
+def test_a_survey_patch_is_checked_against_the_survey_schema(tmp_path, monkeypatch):
+    f = tmp_path / "p.json"  # the bot passes the biosample schema as --schema (propose-metric.yml)
+    f.write_text(json.dumps({"format": V2, "files": {"patches/survey.json": LICENSE}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok", (out / "log").read_text(encoding="utf-8")
+    assert (out / "files" / "schemas" / "stable" / "survey.schema.json").is_file()
+
+
+def test_a_survey_patch_keeps_the_biosample_specimens_for_terms(tmp_path, monkeypatch):
+    f = tmp_path / "p.json"
+    doc = _v2(ferritin=PARENT, ferritin_serum=CHILD)
+    doc["files"]["patches/survey.json"] = LICENSE
+    f.write_text(json.dumps(doc), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert (out / "status").read_text(encoding="utf-8").strip() == "ok", (out / "log").read_text(encoding="utf-8")
+    assert (out / "files" / "terms" / "biosample" / "ferritin.serum.json").is_file()
+    # the term is still checked against biosample's specimen types, not survey's (which has none)
+    bad = _v2(ferritin=PARENT, ferritin_serum={**CHILD, "SpecimenType": "nonsense"})
+    bad["files"]["patches/survey.json"] = LICENSE
+    f.write_text(json.dumps(bad), encoding="utf-8")
+    (tmp_path / "x").mkdir()
+    _, out2 = _run(tmp_path / "x", monkeypatch, file=f)
+    assert (out2 / "status").read_text(encoding="utf-8").strip() == "failed"
+
+
+def test_a_patch_for_a_modality_without_a_schema_is_a_problem(tmp_path, monkeypatch):
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps({"format": V2, "files": {"patches/nosuch.json": LICENSE}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert "patches/nosuch.json: no modality nosuch in schemas/stable" in (out / "log").read_text(encoding="utf-8")

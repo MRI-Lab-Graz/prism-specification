@@ -152,6 +152,10 @@ def test_specimen_types_reads_the_enum_from_the_schema():
     assert _mod.specimen_types(SCHEMA) == SPECIMENS and "saliva" in SPECIMENS
 
 
+def test_specimen_types_is_empty_for_a_schema_without_specimens():
+    assert _mod.specimen_types(REPO / "schemas/stable/survey.schema.json") == []
+
+
 def test_a_trailing_newline_is_not_a_valid_slug():
     bad = {"TermID": "prism:x\n", "Level": "analyte", "Label": "x", "Aliases": [], "Description": "d", "Status": "official"}
     assert check_registry({"x\n": bad})

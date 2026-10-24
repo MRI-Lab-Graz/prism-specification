@@ -146,8 +146,8 @@ def _normalize_v2(proposal: dict) -> tuple[list[tuple[str, dict]], list[str]]:
     for path, term in files.items():
         patch_match = _PATCH_PATH.fullmatch(path) if isinstance(path, str) else None
         match = patch_match or (_TERM_PATH.fullmatch(path) if isinstance(path, str) else None)
-        if not match or match["modality"] not in MODALITIES:
-            problems.append(f"path {path!r} is not allowed (terms/<{'|'.join(MODALITIES)}>/<id>.json or patches/<{'|'.join(MODALITIES)}>.json)")
+        if not match or (not patch_match and match["modality"] not in MODALITIES):
+            problems.append(f"path {path!r} is not allowed (terms/<{'|'.join(MODALITIES)}>/<id>.json or patches/<modality>.json)")
             continue
         if patch_match:  # the patch is validated against the schema it targets, in check_proposal
             if isinstance(term, dict):
@@ -180,31 +180,37 @@ def split(pairs: list[tuple[str, dict]]) -> tuple[list[tuple[str, dict]], list[t
 
 
 def _specimens_of(schema: dict) -> list[str]:
-    return schema["properties"]["Technical"]["properties"]["SpecimenType"]["enum"]
+    return schema.get("properties", {}).get("Technical", {}).get("properties", {}).get("SpecimenType", {}).get("enum", [])
 
 
 def check_proposal(
-    proposal: dict, registry: dict[str, dict], specimens: list[str], schema: dict | None = None
+    proposal: dict, registry: dict[str, dict], specimens: list[str], schema: dict | None = None,
+    *, schemas: dict[str, dict] | None = None,
 ) -> tuple[list[dict], list[str]]:
     """Return (the new terms with Status "official", problems); checked together with the registry.
 
     A proposal may carry a schema patch (`patches/<modality>.json`); then `schema`, the schema it targets, is
-    required, and the terms are checked against the specimen types of the PATCHED schema.
+    required, and the terms are checked against the specimen types of the PATCHED schema. With `schemas`
+    (modality -> schema) each patch is checked against its own modality's schema; the specimen types are
+    taken from a patched schema only when it is a term modality (MODALITIES).
     """
     pairs, problems = normalize(proposal)
     if problems:
         return [], problems
     term_pairs, patch_pairs = split(pairs)
     for path, patch in patch_pairs:
-        if schema is None:
+        modality = _PATCH_PATH.fullmatch(path)["modality"]
+        target = schemas.get(modality) if schemas is not None else (schema if modality in MODALITIES else None)
+        if target is None:
             problems.append(f"{path}: the schema the patch targets is needed to check it")
             continue
         try:
-            patched, _notes = schema_patch.apply_patch(schema, patch)
+            patched, _notes = schema_patch.apply_patch(target, patch)
         except ValueError as exc:  # PatchError; scripts load each other by path, so the class is not shared
             problems.append(f"{path}: {exc}")
             continue
-        specimens = _specimens_of(patched)
+        if modality in MODALITIES:
+            specimens = _specimens_of(patched)
     if problems:
         return [], problems
     terms = [{**term, "Status": "official"} for _path, term in term_pairs]
@@ -277,7 +283,16 @@ def _run_check(args) -> int:
     try:
         proposal = _read_proposal(args.file)
         schema = json.loads(Path(args.schema).read_text(encoding="utf-8"))
-        terms, found = check_proposal(proposal, registry, check_terms.specimen_types(args.schema), schema)
+        schemas, missing = {}, []
+        for path, _patch in split(normalize(proposal)[0])[1]:
+            modality = _PATCH_PATH.fullmatch(path)["modality"]
+            file = Path(args.repo) / "schemas" / "stable" / f"{modality}.schema.json"
+            if file.is_file():
+                schemas[modality] = json.loads(file.read_text(encoding="utf-8"))
+            else:
+                missing.append(f"{path}: no modality {modality} in schemas/stable")
+        terms, found = check_proposal(proposal, registry, check_terms.specimen_types(args.schema), schema, schemas=schemas)
+        found = missing or found
         problems += found
         if not found:
             term_pairs, patches = split(normalize(proposal)[0])

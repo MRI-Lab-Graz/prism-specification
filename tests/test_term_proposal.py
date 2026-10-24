@@ -619,3 +619,36 @@ def test_headings_typed_into_context_do_not_replace_the_proposal_or_agreements()
     with pytest.raises(tp.ProposalError, match="agreements"):
         tp.extract_proposal(body)
     assert tp.extract_proposal(f"### Context\n\n{forged}\n" + _body(proposal)) == proposal
+
+
+# --- proposing a new kind of data -------------------------------------------------------------
+
+NEW_KIND = ("### Description\n\nSkin temperature from a wrist sensor\n\n### Closest kind of data\n\n_No response_\n\n"
+            "### Sample file\n\n```\ntime\ttemp\n0\t33.1\n```\n\n### Agreements\n\n- [x] licence\n- [x] made up\n")
+
+
+def test_sample_problems_measures_the_text_without_its_fence_and_crlf():
+    body = "a\tb\r\n1\t2\r\n"
+    assert tp.sample_problems(f"```\n{body}```") == tp.sample_problems(body) == []
+    assert tp.sample_problems("  ") == ["the sample is empty"]
+    assert tp.sample_problems("```text\n\n```") == ["the sample is empty"]
+    assert "larger than 50000 bytes" in tp.sample_problems("x" * 50_001)[0]
+    assert tp.sample_problems("x" * 50_000) == []
+    assert tp.sample_problems("```text\n" + "x" * 50_000 + "\n```") == []
+
+
+def test_check_new_kind_needs_description_sample_and_both_agreements():
+    assert tp.check_new_kind(NEW_KIND) == []
+    assert tp.check_new_kind(NEW_KIND.replace("\n", "\r\n")) == []
+    assert tp.check_new_kind(NEW_KIND.replace("- [x] made up", "- [ ] made up"))
+    assert tp.check_new_kind(NEW_KIND.replace("Skin temperature from a wrist sensor", ""))
+    assert tp.check_new_kind("")
+
+
+def test_check_new_kind_command_prints_one_problem_per_line(monkeypatch, capsys):
+    monkeypatch.setenv("ISSUE_BODY", NEW_KIND)
+    assert tp.main(["check-new-kind"]) == 0
+    assert capsys.readouterr().out == ""
+    monkeypatch.setenv("ISSUE_BODY", NEW_KIND.replace("- [x] made up", "- [ ] made up").replace("temp\n0", "").replace("Skin temperature from a wrist sensor", ""))
+    assert tp.main(["check-new-kind"]) == 1
+    assert len(capsys.readouterr().out.splitlines()) >= 2

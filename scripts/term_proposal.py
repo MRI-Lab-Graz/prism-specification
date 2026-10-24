@@ -97,6 +97,31 @@ def extract_proposal(issue_body: str) -> dict:
     return proposal
 
 
+def sample_problems(sample: str) -> list[str]:
+    """What is wrong with a pasted sample file (measured without the form's code fence, with \\n line ends)."""
+    text = (sample or "").replace("\r\n", "\n").strip()
+    opening = _OPENING_FENCE.match(text)
+    if opening and text.endswith("```"):
+        text = text[opening.end():-3].strip()
+    if not text:
+        return ["the sample is empty"]
+    n = len(text.encode("utf-8"))
+    return [f"the sample is {n} bytes, larger than {MAX_BYTES} bytes"] if n > MAX_BYTES else []
+
+
+def check_new_kind(issue_body: str) -> list[str]:
+    """Problems of a 'propose a new kind of data' issue; the closest kind is optional and not checked."""
+    sections = _sections((issue_body or "").replace("\r\n", "\n"))
+    boxes = _CHECKBOX.findall(sections.get("Agreements", ""))
+    problems = []
+    if len(boxes) < 2 or any(b == " " for b in boxes):
+        problems.append("Both agreements (licence, made-up sample) must be ticked.")
+    description = sections.get("Description", "").strip()
+    if not description or description == "_No response_":
+        problems.append("The description is empty.")
+    return problems + sample_problems(sections.get("Sample file", ""))
+
+
 def _term_problems(term, where: str) -> list[str]:
     """Problems of one proposed term (allowed fields, value types, the TermID rule)."""
     if not isinstance(term, dict):
@@ -274,6 +299,14 @@ def _read_proposal(file: Path | None) -> dict:
         raise ProposalError(f"The proposal is not valid JSON: {exc}") from exc
 
 
+def _capped(problems: list[str]) -> list[str]:
+    """At most MAX_PROBLEMS lines of at most MAX_LINE characters (a GitHub comment holds 65,536 characters)."""
+    shown = [p if len(p) <= MAX_LINE else p[: MAX_LINE - 3] + "..." for p in problems[:MAX_PROBLEMS]]
+    if len(problems) > len(shown):
+        shown.append(f"... and {len(problems) - len(shown)} more problems")
+    return shown
+
+
 def _run_check(args) -> int:
     """Always writes a bundle (status, log, files/<repository path>); a bad proposal is a failed bundle, not a crash."""
     registry, problems = check_terms.load_terms(args.terms)
@@ -318,10 +351,7 @@ def _run_check(args) -> int:
             shutil.rmtree(files, ignore_errors=True)
     (out / "status").write_text("failed\n" if problems else "ok\n", encoding="utf-8")
     # a GitHub comment is limited to 65,536 characters: at most MAX_PROBLEMS lines of at most MAX_LINE characters
-    shown = [p if len(p) <= MAX_LINE else p[: MAX_LINE - 3] + "..." for p in problems[:MAX_PROBLEMS]]
-    log = "".join(f"ERROR: {p}\n" for p in shown)
-    if len(problems) > len(shown):
-        log += f"ERROR: ... and {len(problems) - len(shown)} more problems\n"
+    log = "".join(f"ERROR: {p}\n" for p in _capped(problems))
     (out / "log").write_text(log, encoding="utf-8")
     print(log or "ok")
     return 0
@@ -338,10 +368,15 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1],
                        help="the checkout a schema release is prepared from (default: the repository of this script)")
     sub.add_parser("pr-body")
+    sub.add_parser("check-new-kind")
     args = ap.parse_args(argv)
     if args.command == "pr-body":
         print(pr_body(int(os.environ["ISSUE_NUMBER"]), schema_release=os.environ.get("SCHEMA_RELEASE") == "1"))
         return 0
+    if args.command == "check-new-kind":
+        problems = _capped(check_new_kind(os.environ.get("ISSUE_BODY", "")))
+        print("\n".join(problems), end="\n" if problems else "")
+        return 1 if problems else 0
     return _run_check(args)
 
 

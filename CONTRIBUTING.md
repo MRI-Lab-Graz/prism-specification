@@ -96,6 +96,20 @@ Check your files:
 python scripts/check_terms.py --terms terms/biosample --schema schemas/stable/biosample.schema.json
 ```
 
+## Proposing a new kind of data
+
+If PRISM has no kind of data (modality) for your data yet, open the issue form
+"Propose a new kind of data" (or let PRISM Studio fill it in). Give:
+
+- a description: what is measured, with which device or method, how the files are organised;
+- a small made-up sample file, pasted as text (at most 50,000 bytes, no real participant data);
+- optionally, the existing kind of data that is closest.
+
+A bot checks that the description and sample are there and the agreements are ticked. Then a
+maintainer builds the schema, the file-name entry (`entities`) and the specification page in a
+normal pull request. PRISM cannot validate this kind of data locally until that pull request is
+merged and part of a PRISM release.
+
 ## Changing a schema
 
 1. Copy the current `schemas/stable/<name>.schema.json` unchanged to

@@ -41,7 +41,7 @@ in **format v2**: the files it adds, each under its repository path.
 
 Sometimes your data needs something an existing modality does not allow yet: a specimen type that is not
 in the list, or an extra optional field. A proposal can carry a **patch** for that, as the file
-`patches/<modality>.json` of a format v2 document (only `biosample` has patches so far):
+`patches/<modality>.json` of a format v2 document (any modality can be patched, in any of its lists):
 
 ```json
 {"operations": [
@@ -95,6 +95,20 @@ Check your files:
 ```bash
 python scripts/check_terms.py --terms terms/biosample --schema schemas/stable/biosample.schema.json
 ```
+
+## Proposing a new kind of data
+
+If PRISM has no kind of data (modality) for your data yet, open the issue form
+"Propose a new kind of data" (or let PRISM Studio fill it in). Give:
+
+- a description: what is measured, with which device or method, how the files are organised;
+- a small made-up sample file, pasted as text (at most 50,000 bytes, no real participant data);
+- optionally, the existing kind of data that is closest.
+
+A bot checks that the description and sample are there and the agreements are ticked. Then a
+maintainer builds the schema, the file-name entry (`entities`) and the specification page in a
+normal pull request. PRISM cannot validate this kind of data locally until that pull request is
+merged and part of a PRISM release.
 
 ## Changing a schema
 

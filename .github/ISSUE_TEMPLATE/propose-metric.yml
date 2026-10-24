@@ -23,6 +23,14 @@ body:
         frozen once released, and your own column name is kept as an alias, so your files keep working.
 
   - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: "Optional. Filled in by PRISM Studio: the entries you chose (including Unknown) and whether you were not sure which kind of data this belongs to."
+    validations:
+      required: false
+
+  - type: textarea
     id: proposal
     attributes:
       label: Proposal

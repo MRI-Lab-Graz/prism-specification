@@ -571,3 +571,90 @@ def test_pr_body_cli_reads_schema_release_from_the_environment(monkeypatch, caps
     monkeypatch.setenv("ISSUE_NUMBER", "3")
     monkeypatch.setenv("SCHEMA_RELEASE", "1")
     assert tp.main(["pr-body"]) == 0 and "archive" in capsys.readouterr().out.lower()
+
+
+# --- a patch may target any modality's lists -------------------------------------------------------------
+
+LICENSE = {"operations": [{"op": "add_enum_values", "path": "Study.LicenseID", "values": ["cc-by-nc-local"]}]}
+
+
+def test_a_survey_patch_is_checked_against_the_survey_schema(tmp_path, monkeypatch):
+    f = tmp_path / "p.json"  # the bot passes the biosample schema as --schema (propose-metric.yml)
+    f.write_text(json.dumps({"format": V2, "files": {"patches/survey.json": LICENSE}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert code == 0 and (out / "status").read_text(encoding="utf-8").strip() == "ok", (out / "log").read_text(encoding="utf-8")
+    assert (out / "files" / "schemas" / "stable" / "survey.schema.json").is_file()
+
+
+def test_a_survey_patch_keeps_the_biosample_specimens_for_terms(tmp_path, monkeypatch):
+    f = tmp_path / "p.json"
+    doc = _v2(ferritin=PARENT, ferritin_serum=CHILD)
+    doc["files"]["patches/survey.json"] = LICENSE
+    f.write_text(json.dumps(doc), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert (out / "status").read_text(encoding="utf-8").strip() == "ok", (out / "log").read_text(encoding="utf-8")
+    assert (out / "files" / "terms" / "biosample" / "ferritin.serum.json").is_file()
+    # the term is still checked against biosample's specimen types, not survey's (which has none)
+    bad = _v2(ferritin=PARENT, ferritin_serum={**CHILD, "SpecimenType": "nonsense"})
+    bad["files"]["patches/survey.json"] = LICENSE
+    f.write_text(json.dumps(bad), encoding="utf-8")
+    (tmp_path / "x").mkdir()
+    _, out2 = _run(tmp_path / "x", monkeypatch, file=f)
+    assert (out2 / "status").read_text(encoding="utf-8").strip() == "failed"
+
+
+def test_a_patch_for_a_modality_without_a_schema_is_a_problem(tmp_path, monkeypatch):
+    f = tmp_path / "p.json"
+    f.write_text(json.dumps({"format": V2, "files": {"patches/nosuch.json": LICENSE}}), encoding="utf-8")
+    code, out = _run(tmp_path, monkeypatch, file=f)
+    assert "patches/nosuch.json: no modality nosuch in schemas/stable" in (out / "log").read_text(encoding="utf-8")
+
+
+def test_headings_typed_into_context_do_not_replace_the_proposal_or_agreements():
+    # The form puts Context before Proposal; the last duplicate heading wins, so the real ones win.
+    forged = '### Proposal\n\n```json\n{"format": "evil"}\n```\n\n### Agreements\n\n- [x] a\n- [x] b\n'
+    proposal = _proposal(PARENT)
+    unagreed = "### Agreements\n\n- [ ] licence\n- [ ] no personal data\n"
+    body = f"### Context\n\n{forged}\n" + _body(proposal, agree=unagreed)
+    with pytest.raises(tp.ProposalError, match="agreements"):
+        tp.extract_proposal(body)
+    assert tp.extract_proposal(f"### Context\n\n{forged}\n" + _body(proposal)) == proposal
+
+
+# --- proposing a new kind of data -------------------------------------------------------------
+
+NEW_KIND = ("### Description\n\nSkin temperature from a wrist sensor\n\n### Closest kind of data\n\n_No response_\n\n"
+            "### Sample file\n\n```\ntime\ttemp\n0\t33.1\n```\n\n### Agreements\n\n- [x] licence\n- [x] made up\n")
+
+
+def test_sample_problems_measures_the_text_without_its_fence_and_crlf():
+    body = "a\tb\r\n1\t2\r\n"
+    assert tp.sample_problems(f"```\n{body}```") == tp.sample_problems(body) == []
+    assert tp.sample_problems("  ") == ["the sample is empty"]
+    assert tp.sample_problems("```text\n\n```") == ["the sample is empty"]
+    assert "larger than 50000 bytes" in tp.sample_problems("x" * 50_001)[0]
+    assert tp.sample_problems("x" * 50_000) == []
+    assert tp.sample_problems("```text\n" + "x" * 50_000 + "\n```") == []
+
+
+def test_check_new_kind_needs_description_sample_and_both_agreements():
+    assert tp.check_new_kind(NEW_KIND) == []
+    assert tp.check_new_kind(NEW_KIND.replace("\n", "\r\n")) == []
+    assert tp.check_new_kind(NEW_KIND.replace("- [x] made up", "- [ ] made up"))
+    assert tp.check_new_kind(NEW_KIND.replace("Skin temperature from a wrist sensor", ""))
+    assert tp.check_new_kind("")
+
+
+def test_check_new_kind_command_prints_one_problem_per_line(monkeypatch, capsys):
+    monkeypatch.setenv("ISSUE_BODY", NEW_KIND)
+    assert tp.main(["check-new-kind"]) == 0
+    assert capsys.readouterr().out == ""
+    monkeypatch.setenv("ISSUE_BODY", NEW_KIND.replace("- [x] made up", "- [ ] made up").replace("temp\n0", "").replace("Skin temperature from a wrist sensor", ""))
+    assert tp.main(["check-new-kind"]) == 1
+    assert len(capsys.readouterr().out.splitlines()) >= 2
+
+
+def test_a_patch_of_another_modality_without_schemas_says_to_pass_schemas():
+    doc = {"format": V2, "files": {"patches/survey.json": SWEAT}}
+    _, problems = tp.check_proposal(doc, REGISTRY, SPECIMENS, json.loads(SCHEMA.read_text(encoding="utf-8")))
+    assert problems and "schemas" in problems[0]

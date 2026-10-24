@@ -168,3 +168,13 @@ def test_the_pull_request_step_copies_only_the_verified_files_and_marks_schema_r
 def test_the_failure_comment_reads_the_log_of_the_bundle():
     step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "problems" in s.get("name", "").lower())
     assert "bundle/log" in step["run"]
+
+
+def test_form_has_an_optional_context_field_before_the_proposal():
+    form = _form()
+    ids = [item.get("id") for item in form["body"]]
+    assert ids.index("context") < ids.index("proposal")
+    field = _field(form, "context")
+    assert field["type"] == "textarea"
+    assert field["attributes"]["label"] == "Context"
+    assert not field.get("validations", {}).get("required")

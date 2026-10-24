@@ -1,0 +1,53 @@
+name: Propose new kind of data
+
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  # Untrusted input: the issue text reaches the script only through env; only code from the default branch runs.
+  check:
+    if: "contains(github.event.issue.labels.*.name, 'type: new-kind-of-data')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the proposal
+        id: check
+        continue-on-error: true
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python3 scripts/term_proposal.py check-new-kind > problems.txt
+
+      - name: Report problems on the issue
+        if: steps.check.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          {
+            echo "The automatic check found problems with this proposal:"
+            echo
+            sed 's/^/- /' problems.txt
+            echo
+            echo "Please open a new issue with the corrected proposal."
+          } > comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment.md
+
+      - name: Thank the contributor
+        if: steps.check.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          echo "Thanks! A maintainer will review this. PRISM can validate this kind of data once it is merged and released." > comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment.md

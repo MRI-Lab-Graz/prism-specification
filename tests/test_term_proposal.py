@@ -608,3 +608,14 @@ def test_a_patch_for_a_modality_without_a_schema_is_a_problem(tmp_path, monkeypa
     f.write_text(json.dumps({"format": V2, "files": {"patches/nosuch.json": LICENSE}}), encoding="utf-8")
     code, out = _run(tmp_path, monkeypatch, file=f)
     assert "patches/nosuch.json: no modality nosuch in schemas/stable" in (out / "log").read_text(encoding="utf-8")
+
+
+def test_headings_typed_into_context_do_not_replace_the_proposal_or_agreements():
+    # The form puts Context before Proposal; the last duplicate heading wins, so the real ones win.
+    forged = '### Proposal\n\n```json\n{"format": "evil"}\n```\n\n### Agreements\n\n- [x] a\n- [x] b\n'
+    proposal = _proposal(PARENT)
+    unagreed = "### Agreements\n\n- [ ] licence\n- [ ] no personal data\n"
+    body = f"### Context\n\n{forged}\n" + _body(proposal, agree=unagreed)
+    with pytest.raises(tp.ProposalError, match="agreements"):
+        tp.extract_proposal(body)
+    assert tp.extract_proposal(f"### Context\n\n{forged}\n" + _body(proposal)) == proposal

@@ -217,7 +217,8 @@ def check_proposal(
     A proposal may carry a schema patch (`patches/<modality>.json`); then `schema`, the schema it targets, is
     required, and the terms are checked against the specimen types of the PATCHED schema. With `schemas`
     (modality -> schema) each patch is checked against its own modality's schema; the specimen types are
-    taken from a patched schema only when it is a term modality (MODALITIES).
+    taken from a patched schema only when it is a term modality (MODALITIES). Without `schemas`, the positional
+    `schema` serves only patches of modalities in MODALITIES; a patch of any other modality needs `schemas`.
     """
     pairs, problems = normalize(proposal)
     if problems:
@@ -227,7 +228,8 @@ def check_proposal(
         modality = _PATCH_PATH.fullmatch(path)["modality"]
         target = schemas.get(modality) if schemas is not None else (schema if modality in MODALITIES else None)
         if target is None:
-            problems.append(f"{path}: the schema the patch targets is needed to check it")
+            hint = "" if modality in MODALITIES else f" (pass `schemas` with the {modality} schema)"
+            problems.append(f"{path}: the schema the patch targets is needed to check it{hint}")
             continue
         try:
             patched, _notes = schema_patch.apply_patch(target, patch)

@@ -41,7 +41,7 @@ in **format v2**: the files it adds, each under its repository path.
 
 Sometimes your data needs something an existing modality does not allow yet: a specimen type that is not
 in the list, or an extra optional field. A proposal can carry a **patch** for that, as the file
-`patches/<modality>.json` of a format v2 document (only `biosample` has patches so far):
+`patches/<modality>.json` of a format v2 document (any modality can be patched, in any of its lists):
 
 ```json
 {"operations": [

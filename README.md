@@ -19,7 +19,7 @@ synced into Studio.
 
 ## Proposing a metric or a change
 
-Use the "Propose a Metric" issue form (or `python prism_tools.py terms propose` in PRISM Studio), or open a
+Use the "Propose a Metric" issue form, or "Propose a new kind of data" for a modality that does not exist yet (or `python prism_tools.py terms propose` in PRISM Studio), or open a
 pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for what a term file looks like, the rules, and the
 checks CI runs.
 

@@ -39,7 +39,7 @@ jobs:
             echo
             sed 's/^/- /' problems.txt
             echo
-            echo "Please edit the issue to fix them and re-open it."
+            echo "Please open a new issue with the corrected proposal."
           } > comment.md
           gh issue comment "$ISSUE_NUMBER" --body-file comment.md
 

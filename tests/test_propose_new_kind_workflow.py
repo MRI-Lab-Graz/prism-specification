@@ -81,3 +81,8 @@ def test_workflow_opens_no_pr_and_moves_no_artifacts():
     text = WORKFLOW.read_text(encoding="utf-8")
     for forbidden in ("pr create", "upload-artifact", "download-artifact", "git push", "curl", "wget"):
         assert forbidden not in text
+
+
+def test_failure_comment_asks_for_a_new_issue_not_a_reopen():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "re-open" not in text and "open a new issue" in text

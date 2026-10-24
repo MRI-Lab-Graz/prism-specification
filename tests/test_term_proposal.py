@@ -652,3 +652,9 @@ def test_check_new_kind_command_prints_one_problem_per_line(monkeypatch, capsys)
     monkeypatch.setenv("ISSUE_BODY", NEW_KIND.replace("- [x] made up", "- [ ] made up").replace("temp\n0", "").replace("Skin temperature from a wrist sensor", ""))
     assert tp.main(["check-new-kind"]) == 1
     assert len(capsys.readouterr().out.splitlines()) >= 2
+
+
+def test_a_patch_of_another_modality_without_schemas_says_to_pass_schemas():
+    doc = {"format": V2, "files": {"patches/survey.json": SWEAT}}
+    _, problems = tp.check_proposal(doc, REGISTRY, SPECIMENS, json.loads(SCHEMA.read_text(encoding="utf-8")))
+    assert problems and "schemas" in problems[0]

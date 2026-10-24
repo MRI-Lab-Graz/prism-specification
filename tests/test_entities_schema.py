@@ -19,3 +19,15 @@ def test_a_survey_file_name_may_carry_the_variant_and_run_entities():
     optional = ENTITIES["modalities"]["survey"]["optionalEntityValues"]
     assert {"acq", "run"} <= set(optional)
     assert re.fullmatch(optional["acq"]["pattern"], "10-likert")
+
+
+def test_described_columns_marks_the_modalities_whose_tsv_columns_the_sidecar_describes():
+    found = {name: e.get("describedColumns") for name, e in ENTITIES["modalities"].items() if e["kind"] == "prism"}
+    assert found == {"survey": True, "biometrics": True, "biosample": True,
+                     "physio": False, "events": False, "environment": False}
+
+
+def test_every_modality_has_a_one_line_description():
+    for name, entry in ENTITIES["modalities"].items():
+        text = entry.get("description", "")
+        assert text.strip() and "\n" not in text and len(text) <= 120, name

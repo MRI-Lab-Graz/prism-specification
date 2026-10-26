@@ -675,6 +675,7 @@ def _env_repo(tmp_path):
     entities["modalities"]["environment"]["terms"] = {"nonTermColumns": ["onset", "duration"]}
     (stable / "entities.schema.json").write_text(json.dumps(entities), encoding="utf-8")
     (stable / "biosample.schema.json").write_text(SCHEMA.read_text(encoding="utf-8"), encoding="utf-8")
+    (stable / "environment.schema.json").write_text("{}", encoding="utf-8")
     (repo / "terms" / "biosample").mkdir(parents=True)
     (repo / "terms" / "environment").mkdir(parents=True)
     return repo
@@ -706,7 +707,7 @@ def test_environment_term_with_dot_is_refused(tmp_path):
     repo = _env_repo(tmp_path)
     term = {**NOISE, "TermID": "prism:air-temperature.indoor"}
     _out, status, log = _env_check(repo, {"terms/environment/air-temperature.indoor.json": term}, tmp_path)
-    assert status == "failed" and log
+    assert status == "failed" and "air-temperature.indoor" in log and "local part" in log
 
 
 def test_mixed_modalities_refused(tmp_path):
@@ -731,3 +732,20 @@ def test_biosample_proposal_through_repo_needs_no_terms_or_schema_flags(tmp_path
 def test_new_term_fields_are_allowed():
     for field, value in (("Levels", {"1": "low"}), ("CFStandardName", "air_temperature")):
         assert field in tp.ALLOWED_FIELDS
+
+
+def test_explicit_missing_schema_is_a_failed_bundle(tmp_path):
+    repo = _env_repo(tmp_path)
+    path = tmp_path / "p.json"
+    path.write_text(json.dumps({"format": tp.FORMAT_V2, "files": {"terms/biosample/ferritin.json": PARENT}}), encoding="utf-8")
+    out = tmp_path / "bundle"
+    argv = ["check", "--repo", str(repo), "--terms", str(repo / "terms" / "biosample"),
+            "--schema", str(tmp_path / "nope.json"), "--file", str(path), "--out", str(out)]
+    assert tp.main(argv) == 0 and (out / "status").read_text(encoding="utf-8").strip() == "failed"
+
+
+def test_declared_modality_without_schema_file_is_a_failed_bundle(tmp_path):
+    repo = _env_repo(tmp_path)
+    (repo / "schemas" / "stable" / "biosample.schema.json").unlink()
+    _out, status, _log = _env_check(repo, {"terms/biosample/ferritin.json": PARENT}, tmp_path)
+    assert status == "failed"

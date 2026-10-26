@@ -178,3 +178,8 @@ def test_form_has_an_optional_context_field_before_the_proposal():
     assert field["type"] == "textarea"
     assert field["attributes"]["label"] == "Context"
     assert not field.get("validations", {}).get("required")
+
+
+def test_check_step_reads_the_registry_from_the_repository():
+    step = next(s for s in _workflow()["jobs"]["check"]["steps"] if s.get("name") == "Check the proposal")
+    assert "terms/biosample" not in step["run"] and "--repo ." in step["run"]

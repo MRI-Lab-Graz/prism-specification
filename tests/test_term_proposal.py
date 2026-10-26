@@ -658,3 +658,76 @@ def test_a_patch_of_another_modality_without_schemas_says_to_pass_schemas():
     doc = {"format": V2, "files": {"patches/survey.json": SWEAT}}
     _, problems = tp.check_proposal(doc, REGISTRY, SPECIMENS, json.loads(SCHEMA.read_text(encoding="utf-8")))
     assert problems and "schemas" in problems[0]
+
+
+# --- any term modality: environment (one level), built in a temporary repository -----------------
+
+NOISE = {"TermID": "prism:noise-level", "Level": "variable", "Label": "noise level", "Units": "dB",
+         "Description": "Sound pressure level"}
+
+
+def _env_repo(tmp_path):
+    """A repository whose entities declare biosample (two levels) and environment (one level)."""
+    repo = tmp_path / "repo"
+    stable = repo / "schemas" / "stable"
+    stable.mkdir(parents=True)
+    entities = json.loads((REPO / "schemas" / "stable" / "entities.schema.json").read_text(encoding="utf-8"))
+    entities["modalities"]["environment"]["terms"] = {"nonTermColumns": ["onset", "duration"]}
+    (stable / "entities.schema.json").write_text(json.dumps(entities), encoding="utf-8")
+    (stable / "biosample.schema.json").write_text(SCHEMA.read_text(encoding="utf-8"), encoding="utf-8")
+    (repo / "terms" / "biosample").mkdir(parents=True)
+    (repo / "terms" / "environment").mkdir(parents=True)
+    return repo
+
+
+def _env_check(repo, files, tmp_path):
+    out = tmp_path / "bundle"
+    path = tmp_path / "p.json"
+    path.write_text(json.dumps({"format": tp.FORMAT_V2, "files": files}), encoding="utf-8")
+    assert tp.main(["check", "--repo", str(repo), "--file", str(path), "--out", str(out)]) == 0
+    return out, (out / "status").read_text(encoding="utf-8").strip(), (out / "log").read_text(encoding="utf-8")
+
+
+def test_environment_variable_proposal_ok(tmp_path):
+    repo = _env_repo(tmp_path)
+    out, status, log = _env_check(repo, {"terms/environment/noise-level.json": NOISE}, tmp_path)
+    assert status == "ok", log
+    written = json.loads((out / "files" / "terms" / "environment" / "noise-level.json").read_text(encoding="utf-8"))
+    assert written["Status"] == "official"
+
+
+def test_environment_check_proposal_with_none_specimens():
+    proposal = {"format": tp.FORMAT_V2, "files": {"terms/environment/noise-level.json": NOISE}}
+    terms, problems = tp.check_proposal(proposal, {}, None, modalities={"environment": {"nonTermColumns": []}})
+    assert problems == [] and terms[0]["Status"] == "official"
+
+
+def test_environment_term_with_dot_is_refused(tmp_path):
+    repo = _env_repo(tmp_path)
+    term = {**NOISE, "TermID": "prism:air-temperature.indoor"}
+    _out, status, log = _env_check(repo, {"terms/environment/air-temperature.indoor.json": term}, tmp_path)
+    assert status == "failed" and log
+
+
+def test_mixed_modalities_refused(tmp_path):
+    repo = _env_repo(tmp_path)
+    _out, status, log = _env_check(repo, {"terms/biosample/ferritin.json": PARENT,
+                                          "terms/environment/noise-level.json": NOISE}, tmp_path)
+    assert status == "failed" and "one kind of data per proposal" in log
+
+
+def test_unknown_term_modality_refused(tmp_path):
+    repo = _env_repo(tmp_path)
+    _out, status, log = _env_check(repo, {"terms/physio/x.json": NOISE}, tmp_path)
+    assert status == "failed" and "not allowed" in log and "biosample" in log and "environment" in log
+
+
+def test_biosample_proposal_through_repo_needs_no_terms_or_schema_flags(tmp_path):
+    repo = _env_repo(tmp_path)
+    _out, status, log = _env_check(repo, {"terms/biosample/ferritin.json": PARENT}, tmp_path)
+    assert status == "ok", log
+
+
+def test_new_term_fields_are_allowed():
+    for field, value in (("Levels", {"1": "low"}), ("CFStandardName", "air_temperature")):
+        assert field in tp.ALLOWED_FIELDS

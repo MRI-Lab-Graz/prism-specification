@@ -1,5 +1,5 @@
 name: Propose a Metric
-description: Propose a new metric (term) for the PRISM term registry, for example a salivary cortisol measure
+description: Propose a new metric (term) for the PRISM term registry (a measurement of a kind of data), for example a salivary cortisol measure or a noise level
 title: "[Metric]: "
 labels: ["type: new-metric", "status: needs-triage"]
 body:

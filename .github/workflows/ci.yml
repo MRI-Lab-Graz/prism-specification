@@ -22,7 +22,10 @@ jobs:
       - name: Field tables are in sync with the schemas
         run: python scripts/generate_schema_reference.py --check
       - name: Term registry
-        run: python scripts/check_terms.py --terms terms/biosample --schema schemas/stable/biosample.schema.json
+        run: |
+          for m in $(python3 -c "import sys; sys.path.insert(0, 'scripts'); from pathlib import Path; import check_terms; print(*check_terms.term_modalities(Path('.')))"); do
+            python scripts/check_terms.py --modality "$m"
+          done
       - name: Modalities
         run: python scripts/check_modalities.py
 

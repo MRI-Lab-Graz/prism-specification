@@ -185,3 +185,60 @@ def test_registry_ids_have_the_same_length_cap_as_proposals():
     reg = {long: _parent(long)}
     assert any("local part" in p or "pattern" in p for p in check_registry(reg))
     assert check_registry({"a" * 63: _parent("a" * 63, Label="short")}) == []
+
+
+# --- one-level (variable) registries, e.g. environment ---
+
+def _var(local="air-temperature", **over):
+    t = {"TermID": f"prism:{local}", "Level": "variable", "Label": local.replace("-", " "),
+         "Units": "degC", "CFStandardName": "air_temperature", "Status": "official"}
+    t.update(over)
+    return {k: v for k, v in t.items() if v is not None}  # None drops the key
+
+
+def _one_level(term):
+    return _mod.check_registry({"air-temperature": term}, None)
+
+
+def test_variable_term_ok():
+    assert _one_level(_var()) == []
+
+
+def test_variable_needs_units_or_levels_not_both():
+    both = _var(Levels={"0": "none"})
+    neither = {k: v for k, v in _var().items() if k != "Units"}
+    assert "Units or Levels" in _text(_one_level(both))
+    assert "Units or Levels" in _text(_one_level(neither))
+
+
+def test_variable_id_has_no_dot():
+    reg = {"air-temperature.indoor": _var("air-temperature.indoor")}
+    assert _mod.check_registry(reg, None)
+
+
+def test_analyte_level_refused_in_one_level_registry():
+    assert "Level must be 'variable'" in _text(_one_level(_parent("air-temperature")))
+
+
+def test_levels_type_checked():
+    assert "Levels must be an object of strings" in _text(_one_level(_var(Units=None, Levels=["a"])))
+
+
+def test_cf_name_pattern():
+    assert _one_level(_var(CFStandardName="Air Temperature"))
+
+
+def test_term_modalities_reads_declarations():
+    assert _mod.term_modalities(REPO)["biosample"]["contextField"] == "Technical.SpecimenType"
+
+
+def test_cli_modality_environment(tmp_path):
+    (tmp_path / "schemas" / "stable").mkdir(parents=True)
+    (tmp_path / "terms" / "environment").mkdir(parents=True)
+    ent = {"modalities": {"environment": {"terms": {"nonTermColumns": ["timestamp"]}}}}
+    (tmp_path / "schemas/stable/entities.schema.json").write_text(json.dumps(ent))
+    (tmp_path / "schemas/stable/environment.schema.json").write_text("{}")
+    (tmp_path / "terms/environment/air-temperature.json").write_text(json.dumps(_var()))
+    assert _mod.main(["--modality", "environment", "--repo", str(tmp_path)]) == 0
+    (tmp_path / "terms/environment/air-temperature.json").write_text(json.dumps(_var(Units=None)))
+    assert _mod.main(["--modality", "environment", "--repo", str(tmp_path)]) == 1

@@ -4,8 +4,11 @@ Stdlib only and independent of Studio's code: it runs in prism-studio and in the
 prism-specification repository.
 
 Usage: python scripts/check_terms.py --terms DIR --schema FILE
+       python scripts/check_terms.py --modality NAME [--repo DIR]
   DIR   folder with one <local-id>.json per term (for example terms/biosample)
-  FILE  the modality schema whose Technical.SpecimenType enum lists the specimens
+  FILE  the modality schema whose context enum (Technical.SpecimenType) lists the specimens
+  NAME  a modality whose entities.schema.json entry declares `terms`; reads
+        REPO/terms/NAME and REPO/schemas/stable/NAME.schema.json
 Spec: docs/superpowers/specs/2026-10-22-biosample-term-registry-design.md
 """
 
@@ -19,11 +22,12 @@ from pathlib import Path
 
 ID_PREFIXES = ("prism", "bids")
 _SLUG = re.compile(r"^[a-z][a-z0-9-]{0,62}$")  # at most 63 characters per segment
+_CF_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 _LOINC = re.compile(r"^\d+-\d$")
 _STATUSES = ("official", "deprecated")
 
 
-_STRINGS = ("Level", "Label", "Description", "Parent", "SpecimenType", "Units", "LOINC")
+_STRINGS = ("Level", "Label", "Description", "Parent", "SpecimenType", "Units", "LOINC", "CFStandardName")
 _STRING_LISTS = ("Aliases", "AlternativeUnits", "Equivalents")
 _NUMBERS = ("MinValue", "WarnMaxValue")
 
@@ -37,6 +41,11 @@ def type_problems(term: dict, where: str) -> list[str]:
     for key in _STRING_LISTS:
         if key in term and not (isinstance(term[key], list) and all(isinstance(v, str) for v in term[key])):
             problems.append(f"{where}: {key} must be a list of strings")
+    if "Levels" in term and not (
+        isinstance(term["Levels"], dict)
+        and all(isinstance(k, str) and isinstance(v, str) for k, v in term["Levels"].items())
+    ):
+        problems.append(f"{where}: Levels must be an object of strings")
     for key in _NUMBERS:
         if key in term and (isinstance(term[key], bool) or not isinstance(term[key], (int, float))):
             problems.append(f"{where}: {key} must be a number")
@@ -60,10 +69,15 @@ def load_terms(folder: Path) -> tuple[dict[str, dict], list[str]]:
     return registry, problems
 
 
-def check_registry(registry: dict[str, dict], specimen_types: list[str]) -> list[str]:
-    """Return human-readable problems of a registry (empty list = valid)."""
+def check_registry(registry: dict[str, dict], specimen_types: list[str] | None) -> list[str]:
+    """Return human-readable problems of a registry (empty list = valid).
+
+    specimen_types None = a one-level registry (only Level 'variable'); a list, even an
+    empty one, = the two-level biosample rules.
+    """
     problems: list[str] = []
-    specimens = specimen_types
+    one_level = specimen_types is None
+    specimens = specimen_types or []
     full_ids = {t.get("TermID") for t in registry.values()}
     # Every name a term answers to; a second claimant is a collision.
     claims: dict[str, str] = {}
@@ -94,8 +108,21 @@ def check_registry(registry: dict[str, dict], specimen_types: list[str]) -> list
         if "LOINC" in term and not _LOINC.fullmatch(str(term["LOINC"])):
             problems.append(f"{key}: LOINC {term['LOINC']!r} does not look like 2143-6")
 
+        if "CFStandardName" in term and not _CF_NAME.fullmatch(term["CFStandardName"]):
+            problems.append(f"{key}: CFStandardName {term['CFStandardName']!r} must match {_CF_NAME.pattern}")
+
         level = term.get("Level")
-        if level == "analyte":
+        if one_level:
+            if level != "variable":
+                problems.append(f"{key}: Level must be 'variable'")
+            else:
+                if not _SLUG.fullmatch(local):
+                    problems.append(f"{key}: ID local part {local!r} must match {_SLUG.pattern}")
+                if not term.get("Label"):
+                    problems.append(f"{key}: variable term needs a Label")
+                if ("Units" in term) == ("Levels" in term):
+                    problems.append(f"{key}: variable term needs exactly one of Units or Levels")
+        elif level == "analyte":
             if not _SLUG.fullmatch(local.split(".")[0] or "") or "." in local:
                 problems.append(f"{key}: parent ID local part {local!r} must match {_SLUG.pattern}")
             if not term.get("Label"):
@@ -125,19 +152,47 @@ def check_registry(registry: dict[str, dict], specimen_types: list[str]) -> list
     return problems
 
 
+def context_values(schema_file: Path, field: str | None) -> list[str] | None:
+    """The enum at a dotted schema field such as Technical.SpecimenType ([] when absent; None without a field)."""
+    if field is None:
+        return None
+    node = json.loads(Path(schema_file).read_text(encoding="utf-8"))
+    for part in field.split("."):
+        node = node.get("properties", {}).get(part, {})
+    return node.get("enum", [])
+
+
 def specimen_types(schema_file: Path) -> list[str]:
     """The Technical.SpecimenType enum of a modality schema ([] when it has none)."""
-    schema = json.loads(Path(schema_file).read_text(encoding="utf-8"))
-    return schema.get("properties", {}).get("Technical", {}).get("properties", {}).get("SpecimenType", {}).get("enum", [])
+    return context_values(schema_file, "Technical.SpecimenType") or []
+
+
+def term_modalities(repo: Path) -> dict[str, dict]:
+    """Modality -> its `terms` declaration, from REPO/schemas/stable/entities.schema.json (the one reader)."""
+    entities = json.loads((Path(repo) / "schemas" / "stable" / "entities.schema.json").read_text(encoding="utf-8"))
+    return {n: m["terms"] for n, m in entities.get("modalities", {}).items() if isinstance(m.get("terms"), dict)}
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--terms", required=True, type=Path)
-    ap.add_argument("--schema", required=True, type=Path)
+    ap.add_argument("--terms", type=Path)
+    ap.add_argument("--schema", type=Path)
+    ap.add_argument("--modality")
+    ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parent.parent)
     args = ap.parse_args(argv)
-    registry, problems = load_terms(args.terms)
-    problems += check_registry(registry, specimen_types(args.schema))
+    if args.modality:
+        decl = term_modalities(args.repo).get(args.modality)
+        if decl is None:
+            ap.error(f"{args.modality!r} does not declare terms in entities.schema.json")
+        terms = args.repo / "terms" / args.modality
+        schema = args.repo / "schemas" / "stable" / f"{args.modality}.schema.json"
+        context = context_values(schema, decl.get("contextField"))
+    elif args.terms and args.schema:
+        terms, context = args.terms, specimen_types(args.schema)
+    else:
+        ap.error("give --modality NAME, or --terms DIR and --schema FILE")
+    registry, problems = load_terms(terms)
+    problems += check_registry(registry, context)
     for problem in problems:
         print(problem)
     return 1 if problems else 0

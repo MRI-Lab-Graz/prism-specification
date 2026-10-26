@@ -749,3 +749,81 @@ def test_declared_modality_without_schema_file_is_a_failed_bundle(tmp_path):
     (repo / "schemas" / "stable" / "biosample.schema.json").unlink()
     _out, status, _log = _env_check(repo, {"terms/biosample/ferritin.json": PARENT}, tmp_path)
     assert status == "failed"
+
+
+# --- Studio's vendored copy: scripts/ without schemas/ beside it (final review C1) -------------------------
+
+import subprocess
+import sys
+
+
+def _vendored(tmp_path):
+    """The scripts as PRISM Studio vendors them: scripts/specification/*.py, no schemas/ folder anywhere near."""
+    folder = tmp_path / "scripts" / "specification"
+    folder.mkdir(parents=True)
+    for script in (REPO / "scripts").glob("*.py"):
+        shutil.copy(script, folder / script.name)
+    spec = importlib.util.spec_from_file_location("vendored_term_proposal", folder / "term_proposal.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return folder, mod
+
+
+def test_vendored_check_proposal_without_modalities_keeps_the_biosample_rules(tmp_path):
+    _folder, vendored = _vendored(tmp_path)
+    terms, problems = vendored.check_proposal(_v2(ferritin=PARENT, ferritin_serum=CHILD), REGISTRY, SPECIMENS)
+    assert problems == [] and [t["TermID"] for t in terms] == ["prism:ferritin", "prism:ferritin.serum"]
+    _, problems = vendored.check_proposal(_v2(ferritin=PARENT, ferritin_x=_child("ferritin", "nonsense")), REGISTRY, SPECIMENS)
+    assert any("nonsense" in p for p in problems)
+
+
+def test_vendored_cli_with_explicit_terms_and_schema_checks_as_before(tmp_path):
+    folder, _vendored_mod = _vendored(tmp_path)
+    proposal = tmp_path / "p.json"
+    proposal.write_text(json.dumps(_v2(ferritin=PARENT, ferritin_serum=CHILD)), encoding="utf-8")
+    out = tmp_path / "bundle"
+    subprocess.run([sys.executable, str(folder / "term_proposal.py"), "check", "--terms", str(REPO / "terms" / "biosample"),
+                    "--schema", str(SCHEMA), "--file", str(proposal), "--out", str(out)], check=True, cwd=tmp_path)
+    assert (out / "status").read_text(encoding="utf-8").strip() == "ok", (out / "log").read_text(encoding="utf-8")
+    assert (out / "files" / "terms" / "biosample" / "ferritin.serum.json").is_file()
+
+
+def test_the_bot_path_fails_loudly_without_an_entities_file(tmp_path):
+    repo = _env_repo(tmp_path)
+    (repo / "schemas" / "stable" / "entities.schema.json").unlink()
+    _out, status, log = _env_check(repo, {"terms/biosample/ferritin.json": PARENT}, tmp_path)
+    assert status == "failed" and "internal error" in log
+
+
+# --- one kind of data: patches of term modalities count too (final review I1) -------------------------------
+
+ENV_PATCH = {"operations": [{"op": "add_optional_properties", "path": "Technical",
+                             "properties": {"StationId": {"type": "string", "description": "Weather station"}}}]}
+
+
+def test_an_official_biosample_term_plus_an_environment_patch_is_refused(tmp_path):
+    hijack = {**{k: v for k, v in REGISTRY["crp"].items() if k != "Status"}, "Label": "HIJACKED"}
+    _out, status, log = _env_check(REPO, {"terms/biosample/crp.json": hijack, "patches/environment.json": ENV_PATCH}, tmp_path)
+    assert status == "failed" and "one kind of data per proposal" in log, log
+
+
+def test_a_valid_biosample_child_plus_an_environment_patch_is_refused(tmp_path):
+    files = {"terms/biosample/crp.serum.json": {**_child("crp", "serum"), "Units": "mg/L"}, "patches/environment.json": ENV_PATCH}
+    _out, status, log = _env_check(REPO, files, tmp_path)
+    assert status == "failed" and "one kind of data per proposal" in log, log
+    env_schema = json.loads((REPO / "schemas" / "stable" / "environment.schema.json").read_text(encoding="utf-8"))
+    _, problems = tp.check_proposal({"format": V2, "files": files}, REGISTRY, SPECIMENS, schemas={"environment": env_schema})
+    assert any("one kind of data per proposal" in p for p in problems), problems
+
+
+def test_an_environment_term_plus_a_biosample_patch_is_refused(tmp_path):
+    files = {"terms/environment/noise-level.json": NOISE, "patches/biosample.json": SWEAT}
+    _out, status, log = _env_check(REPO, files, tmp_path)
+    assert status == "failed" and "one kind of data per proposal" in log and "analyte" not in log, log
+
+
+def test_an_environment_term_with_its_own_patch_is_one_kind(tmp_path):
+    files = {"terms/environment/noise-level.json": NOISE, "patches/environment.json": ENV_PATCH}
+    out, status, log = _env_check(REPO, files, tmp_path)
+    assert status == "ok", log
+    assert (out / "files" / "terms" / "environment" / "noise-level.json").is_file()

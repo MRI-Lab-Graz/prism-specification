@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:noise-level",
+  "Level": "variable",
+  "Label": "noise level",
+  "Aliases": [
+    "noise_db"
+  ],
+  "Description": "Sound pressure level in the room during the session (live check of v1.4.0, will be closed).",
+  "Units": "dB",
+  "Status": "official"
+}

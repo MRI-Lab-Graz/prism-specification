@@ -49,8 +49,8 @@
     },
     "environment": {
       "kind": "prism",
-      "description": "Surroundings during a session (weather, light, noise, ...)",
-      "describedColumns": false,
+      "description": "Environmental conditions linked to a session (temperature, UV, noise, ...)",
+      "describedColumns": true,
       "suffixes": ["environment"],
       "extensions": ["tsv", "tsv.gz", "json"],
       "requiredEntityValues": {

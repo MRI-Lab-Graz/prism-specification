@@ -22,7 +22,7 @@ jobs:
       - name: Field tables are in sync with the schemas
         run: python scripts/generate_schema_reference.py --check
       - name: Term registry
-        run: python scripts/check_terms.py --terms terms/biosample --schema schemas/stable/biosample.schema.json
+        run: python scripts/check_terms.py --all
       - name: Modalities
         run: python scripts/check_modalities.py
 

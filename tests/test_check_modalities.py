@@ -50,3 +50,24 @@ def test_a_schema_whose_id_does_not_match_its_version_is_reported(tmp_path):
     path.write_text(json.dumps(schema), encoding="utf-8")
     problems = mod.check(_entities(), tmp_path / "s")
     assert any("biosample" in p and "$id" in p for p in problems)
+
+
+def test_terms_folder_and_declaration_agree(tmp_path):
+    shutil.copytree(SCHEMAS, tmp_path / "s")
+    (tmp_path / "terms" / "events").mkdir(parents=True)  # a folder without a declaration
+    problems = mod.check(_entities(), tmp_path / "s", tmp_path / "terms")
+    assert len([p for p in problems if "events" in p and "terms" in p]) == 1
+    # the reverse: biosample declares terms but the folder is absent
+    (tmp_path / "terms" / "events").rmdir()
+    problems = mod.check(_entities(), tmp_path / "s", tmp_path / "terms")
+    assert len([p for p in problems if "biosample" in p and "terms" in p]) == 1
+
+
+def test_context_field_must_be_an_enum():
+    entities = _entities()
+    entities["modalities"]["biosample"]["terms"]["contextField"] = "Technical.Nope"
+    assert any("Technical.Nope" in p for p in mod.check(entities, SCHEMAS, REPO / "terms"))
+
+
+def test_shipped_entities_pass():
+    assert mod.check(_entities(), SCHEMAS, REPO / "terms") == []

@@ -24,7 +24,7 @@ def test_a_survey_file_name_may_carry_the_variant_and_run_entities():
 def test_described_columns_marks_the_modalities_whose_tsv_columns_the_sidecar_describes():
     found = {name: e.get("describedColumns") for name, e in ENTITIES["modalities"].items() if e["kind"] == "prism"}
     assert found == {"survey": True, "biometrics": True, "biosample": True,
-                     "physio": False, "events": False, "environment": False}
+                     "physio": False, "events": False, "environment": True}
 
 
 def test_every_modality_has_a_one_line_description():

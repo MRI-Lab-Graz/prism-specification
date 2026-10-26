@@ -96,6 +96,14 @@ Check your files:
 python scripts/check_terms.py --terms terms/biosample --schema schemas/stable/biosample.schema.json
 ```
 
+## Proposing a variable of a one-level kind of data
+
+Some kinds of data (for example `environment`) have no sample type: one term is one variable.
+Propose it like a metric, but the file is `terms/<modality>/<id>.json` with `Level: "variable"`,
+`Label`, `Description`, `Aliases` (the column names) and exactly one of `Units` (a number) or
+`Levels` (an object mapping each code to a short label). `CFStandardName` (a CF standard name)
+is optional. Check it with `python scripts/check_terms.py --modality <modality>`.
+
 ## Proposing a new kind of data
 
 If PRISM has no kind of data (modality) for your data yet, open the issue form

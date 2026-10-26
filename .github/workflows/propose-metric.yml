@@ -23,7 +23,7 @@ jobs:
       - name: Check the proposal
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
-        run: python3 scripts/term_proposal.py check --terms terms/biosample --schema schemas/stable/biosample.schema.json --out bundle
+        run: python3 scripts/term_proposal.py check --repo . --out bundle
 
       - name: Upload result bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

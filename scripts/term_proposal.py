@@ -423,8 +423,9 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--schema", type=Path, help="the modality schema (default: schemas/stable/<modality>.schema.json of --repo)")
     check.add_argument("--out", required=True, type=Path)
     check.add_argument("--file", type=Path)
-    check.add_argument("--repo", type=Path, help="the checkout whose declaration, terms and schemas are read and a schema "
-                       "release is prepared from; required to be complete (default: the repository of this script)")
+    check.add_argument("--repo", type=Path, help="a complete checkout (the bot passes it): its schemas/stable/entities.schema.json, "
+                       "terms and schemas are read and a schema release is prepared from it; without --repo, "
+                       "--terms and --schema are required (biosample only)")
     sub.add_parser("pr-body")
     sub.add_parser("check-new-kind")
     args = ap.parse_args(argv)

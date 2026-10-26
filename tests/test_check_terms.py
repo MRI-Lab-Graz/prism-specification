@@ -242,3 +242,66 @@ def test_cli_modality_environment(tmp_path):
     assert _mod.main(["--modality", "environment", "--repo", str(tmp_path)]) == 0
     (tmp_path / "terms/environment/air-temperature.json").write_text(json.dumps(_var(Units=None)))
     assert _mod.main(["--modality", "environment", "--repo", str(tmp_path)]) == 1
+
+
+# --- final review: empty Units/Levels, --all, exclusive options, CI and PR template ---
+
+import pytest
+import yaml
+
+
+def test_variable_with_empty_units_or_levels_is_a_problem():
+    assert "Units or Levels" in _text(_one_level(_var(Units="")))
+    assert "Units or Levels" in _text(_one_level(_var(Units=None, Levels={})))
+
+
+def _two_modality_repo(tmp_path, entities=None):
+    (tmp_path / "schemas" / "stable").mkdir(parents=True)
+    ent = entities if entities is not None else {"modalities": {
+        "environment": {"terms": {"nonTermColumns": []}},
+        "biosample": {"terms": {"nonTermColumns": [], "contextField": "Technical.SpecimenType"}}}}
+    (tmp_path / "schemas/stable/entities.schema.json").write_text(json.dumps(ent))
+    (tmp_path / "schemas/stable/environment.schema.json").write_text("{}")
+    (tmp_path / "schemas/stable/biosample.schema.json").write_text(SCHEMA.read_text(encoding="utf-8"))
+    for name in ("environment", "biosample"):
+        (tmp_path / "terms" / name).mkdir(parents=True)
+    (tmp_path / "terms/environment/air-temperature.json").write_text(json.dumps(_var()))
+    return tmp_path
+
+
+def test_cli_all_checks_every_declared_modality(tmp_path, capsys):
+    repo = _two_modality_repo(tmp_path)
+    assert _mod.main(["--all", "--repo", str(repo)]) == 0
+    (repo / "terms/biosample/bad.json").write_text(json.dumps(_parent("bad", Label="")))
+    assert _mod.main(["--all", "--repo", str(repo)]) == 1
+    assert "biosample" in capsys.readouterr().out
+
+
+def test_cli_all_fails_when_no_modality_declares_terms(tmp_path):
+    repo = _two_modality_repo(tmp_path, entities={"modalities": {}})
+    with pytest.raises(SystemExit) as exc:
+        _mod.main(["--all", "--repo", str(repo)])
+    assert exc.value.code != 0
+
+
+@pytest.mark.parametrize("argv", [
+    ["--modality", "biosample", "--terms", "terms/biosample"],
+    ["--modality", "biosample", "--schema", str(SCHEMA)],
+    ["--all", "--modality", "biosample"],
+    ["--all", "--terms", "terms/biosample", "--schema", str(SCHEMA)],
+])
+def test_cli_modes_are_exclusive(argv):
+    with pytest.raises(SystemExit) as exc:
+        _mod.main(argv)
+    assert exc.value.code == 2
+
+
+def test_ci_checks_every_term_modality_without_a_swallowed_reader():
+    ci = yaml.safe_load((REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+    step = next(s for s in ci["jobs"]["checks"]["steps"] if s.get("name") == "Term registry")
+    assert step["run"].strip() == "python scripts/check_terms.py --all"
+
+
+def test_pr_template_names_the_check_for_every_kind_of_data_with_terms():
+    text = (REPO / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
+    assert "check_terms.py --modality NAME" in text and "--terms terms/biosample" not in text

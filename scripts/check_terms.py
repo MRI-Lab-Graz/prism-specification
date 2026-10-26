@@ -5,6 +5,7 @@ prism-specification repository.
 
 Usage: python scripts/check_terms.py --terms DIR --schema FILE
        python scripts/check_terms.py --modality NAME [--repo DIR]
+       python scripts/check_terms.py --all [--repo DIR]   (every NAME; fails when none is declared)
   DIR   folder with one <local-id>.json per term (for example terms/biosample)
   FILE  the modality schema whose context enum (Technical.SpecimenType) lists the specimens
   NAME  a modality whose entities.schema.json entry declares `terms`; reads
@@ -120,7 +121,7 @@ def check_registry(registry: dict[str, dict], specimen_types: list[str] | None) 
                     problems.append(f"{key}: ID local part {local!r} must match {_SLUG.pattern}")
                 if not term.get("Label"):
                     problems.append(f"{key}: variable term needs a Label")
-                if ("Units" in term) == ("Levels" in term):
+                if bool(term.get("Units")) == bool(term.get("Levels")):  # an empty value counts as missing
                     problems.append(f"{key}: variable term needs exactly one of Units or Levels")
         elif level == "analyte":
             if not _SLUG.fullmatch(local.split(".")[0] or "") or "." in local:
@@ -175,28 +176,38 @@ def term_modalities(repo: Path) -> dict[str, dict]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--terms", type=Path)
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--all", action="store_true", help="every modality that declares terms (fails when none does)")
+    mode.add_argument("--modality")
+    mode.add_argument("--terms", type=Path)
     ap.add_argument("--schema", type=Path)
-    ap.add_argument("--modality")
     ap.add_argument("--repo", type=Path, default=Path(__file__).resolve().parent.parent)
     args = ap.parse_args(argv)
-    if args.modality:
-        decl = term_modalities(args.repo).get(args.modality)
-        if decl is None:
-            ap.error(f"{args.modality!r} does not declare terms in entities.schema.json")
-        terms = args.repo / "terms" / args.modality
-        schema = args.repo / "schemas" / "stable" / f"{args.modality}.schema.json"
-        context = context_values(schema, decl.get("contextField"))
+    if args.schema and not args.terms:
+        ap.error("--schema goes with --terms")
+    if args.all or args.modality:
+        declared = term_modalities(args.repo)
+        names = list(declared) if args.all else [args.modality]
+        if not names:
+            ap.error("no modality declares terms in entities.schema.json")
+        jobs = []
+        for name in names:
+            if name not in declared:
+                ap.error(f"{name!r} does not declare terms in entities.schema.json")
+            schema = args.repo / "schemas" / "stable" / f"{name}.schema.json"
+            prefix = f"{name}/" if args.all else ""
+            jobs.append((prefix, args.repo / "terms" / name, context_values(schema, declared[name].get("contextField"))))
     elif args.terms and args.schema:
-        terms, context = args.terms, specimen_types(args.schema)
+        jobs = [("", args.terms, specimen_types(args.schema))]
     else:
-        ap.error("give --modality NAME, or --terms DIR and --schema FILE")
-    registry, problems = load_terms(terms)
-    problems += check_registry(registry, context)
+        ap.error("give --all, --modality NAME, or --terms DIR and --schema FILE")
+    problems = []
+    for prefix, terms, context in jobs:
+        registry, found = load_terms(terms)
+        problems += [prefix + p for p in found + check_registry(registry, context)]
     for problem in problems:
         print(problem)
     return 1 if problems else 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

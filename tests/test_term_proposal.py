@@ -305,7 +305,7 @@ def test_v2_shape_problems(doc):
         "terms/biosample/ferritin.JSON",
         "terms/biosample/ferritin.txt",
         "terms/biosample/sub/ferritin.json",
-        "terms/environment/ferritin.json",
+        "terms/events/ferritin.json",
         "terms/biosample/.json",
         "terms//ferritin.json",
         "schemas/stable/ferritin.json",

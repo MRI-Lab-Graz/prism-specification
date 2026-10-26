@@ -55,7 +55,8 @@
       "extensions": ["tsv", "tsv.gz", "json"],
       "requiredEntityValues": {
         "recording": {"pattern": "[a-zA-Z0-9]+"}
-      }
+      },
+      "terms": {"nonTermColumns": ["subject_id", "session_id"]}
     },
     "events": {
       "kind": "prism",

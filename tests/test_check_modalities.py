@@ -54,11 +54,11 @@ def test_a_schema_whose_id_does_not_match_its_version_is_reported(tmp_path):
 
 def test_terms_folder_and_declaration_agree(tmp_path):
     shutil.copytree(SCHEMAS, tmp_path / "s")
-    (tmp_path / "terms" / "environment").mkdir(parents=True)
+    (tmp_path / "terms" / "events").mkdir(parents=True)  # a folder without a declaration
     problems = mod.check(_entities(), tmp_path / "s", tmp_path / "terms")
-    assert len([p for p in problems if "environment" in p and "terms" in p]) == 1
+    assert len([p for p in problems if "events" in p and "terms" in p]) == 1
     # the reverse: biosample declares terms but the folder is absent
-    (tmp_path / "terms" / "environment").rmdir()
+    (tmp_path / "terms" / "events").rmdir()
     problems = mod.check(_entities(), tmp_path / "s", tmp_path / "terms")
     assert len([p for p in problems if "biosample" in p and "terms" in p]) == 1
 

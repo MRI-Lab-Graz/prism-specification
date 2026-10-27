@@ -86,6 +86,7 @@ Rules (CI enforces them with `python scripts/check_terms.py`):
 * **An ID is frozen once released.** A wrong name is fixed by changing the
   `Label`, or by deprecating the term (`Status: deprecated`, `ReplacedBy`),
   never by renaming the ID.
+* `Group` is optional: a short heading (1-60 characters, one line) under which a list of terms is clustered, e.g. `Air quality`.
 * A user's own column name goes into `Aliases`, never into the ID.
 * Do not invent clinical ranges or LOINC codes; leave them out unless you can
   cite them in the pull request.

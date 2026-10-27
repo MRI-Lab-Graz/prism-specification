@@ -71,3 +71,11 @@ def test_context_field_must_be_an_enum():
 
 def test_shipped_entities_pass():
     assert mod.check(_entities(), SCHEMAS, REPO / "terms") == []
+
+
+def test_check_modalities_terms_option(tmp_path, capsys):
+    shutil.copytree(REPO / "terms", tmp_path / "terms")
+    shutil.rmtree(tmp_path / "terms" / "environment")
+    assert mod.main(["--terms", str(tmp_path / "terms")]) == 1
+    assert "environment" in capsys.readouterr().out
+    assert mod.main([]) == 0

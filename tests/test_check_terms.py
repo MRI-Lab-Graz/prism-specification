@@ -305,3 +305,30 @@ def test_ci_checks_every_term_modality_without_a_swallowed_reader():
 def test_pr_template_names_the_check_for_every_kind_of_data_with_terms():
     text = (REPO / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
     assert "check_terms.py --modality NAME" in text and "--terms terms/biosample" not in text
+
+
+GROUPS = {
+    "Temperature and humidity": "air-temperature apparent-temperature dew-point-temperature relative-humidity heat-status",
+    "Wind, pressure and rain": "surface-air-pressure wind-speed precipitation cloud-cover weather-regime",
+    "Sun and light": "shortwave-radiation uv-index daylight-duration hours-since-daylight sun-phase",
+    "Air quality": "european-aqi pm25 pm10 nitrogen-dioxide ozone",
+    "Pollen": "pollen-birch pollen-grass pollen-mugwort pollen-ragweed pollen-total pollen-risk",
+    "Place and time": "elevation season time-of-day moon-phase moon-illumination",
+}
+
+
+def test_group_type_and_length():
+    for bad in (5, ["Pollen"], "", "x" * 61, "two\nlines"):
+        assert any("Group" in p for p in _mod.type_problems({"Group": bad}, "t")), bad
+    assert _mod.type_problems({"Group": "Pollen"}, "t") == []
+    assert _mod.type_problems({"Group": "x" * 60}, "t") == []
+
+
+def test_every_environment_term_has_one_of_the_six_groups():
+    import json
+    folder = Path(__file__).resolve().parent.parent / "terms" / "environment"
+    found = {}
+    for f in folder.glob("*.json"):
+        found.setdefault(json.loads(f.read_text(encoding="utf-8")).get("Group"), []).append(f.stem)
+    assert {g: sorted(v) for g, v in found.items()} == {g: sorted(v.split()) for g, v in GROUPS.items()}
+    assert sum(len(v) for v in found.values()) == 31

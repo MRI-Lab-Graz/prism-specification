@@ -827,3 +827,14 @@ def test_an_environment_term_with_its_own_patch_is_one_kind(tmp_path):
     out, status, log = _env_check(REPO, files, tmp_path)
     assert status == "ok", log
     assert (out / "files" / "terms" / "environment" / "noise-level.json").is_file()
+
+
+def test_group_is_allowed_in_proposals(tmp_path):
+    repo = _env_repo(tmp_path)
+    term = {**NOISE, "Group": "Sound"}
+    out, status, log = _env_check(repo, {"terms/environment/noise-level.json": term}, tmp_path)
+    assert status == "ok", log
+    written = json.loads((out / "files" / "terms" / "environment" / "noise-level.json").read_text(encoding="utf-8"))
+    assert written["Group"] == "Sound"
+    _out, status, log = _env_check(repo, {"terms/environment/noise-level.json": {**NOISE, "Group": "x" * 61}}, tmp_path)
+    assert status == "failed" and "Group" in log

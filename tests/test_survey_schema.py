@@ -108,3 +108,30 @@ def test_version_and_archive():
     assert SCHEMA["$id"].endswith("/v2.0.0")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
+
+
+def _nested(path, value):
+    d = copy.deepcopy(BASE)
+    study = d["Study"]
+    if path == "Translation.Notes":
+        study["Translation"] = {"Notes": value}
+    elif path == "References.Notes":
+        study["References"] = [{"Type": "primary", "Notes": value}]
+    elif path == "VariantDefinitions.Description":
+        study["VariantDefinitions"] = [{"VariantID": "short", "Description": value}]
+    else:
+        study[path] = value
+    return d
+
+
+MORE_FIELDS = ["Reliability", "Validity", "Norming", "PermissionsNote", "Translation.Notes",
+               "References.Notes", "VariantDefinitions.Description"]
+
+
+@pytest.mark.parametrize("path", MORE_FIELDS)
+def test_more_text_fields_need_english(path):
+    assert not valid(_nested(path, {"de": "x"}))
+    assert not valid(_nested(path, {"en": "", "de": "x"}))
+    assert valid(_nested(path, {"en": "x"}))
+    assert valid(_nested(path, {"en": "x", "de": "y"}))
+    assert valid(_nested(path, "plain string"))

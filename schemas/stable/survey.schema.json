@@ -129,6 +129,8 @@
               },
               "Description": {
                 "type": ["string", "object"],
+                "required": ["en"],
+                "properties": {"en": {"type": "string", "minLength": 1}},
                 "description": "Optional description of this variant."
               }
             },
@@ -215,6 +217,8 @@
         },
         "PermissionsNote": {
           "type": ["string", "object"],
+          "required": ["en"],
+          "properties": {"en": {"type": "string", "minLength": 1}},
           "description": "Short note describing permissions/usage constraints"
         },
         "PermissionsURL": {
@@ -251,10 +255,14 @@
         },
         "Reliability": {
           "type": ["string", "object"],
+          "required": ["en"],
+          "properties": {"en": {"type": "string", "minLength": 1}},
           "description": "Information about the reliability of the instrument"
         },
         "Validity": {
           "type": ["string", "object"],
+          "required": ["en"],
+          "properties": {"en": {"type": "string", "minLength": 1}},
           "description": "Information about the validity of the instrument"
         },
         "Subscales": {
@@ -301,6 +309,8 @@
         },
         "Norming": {
           "type": ["string", "object"],
+          "required": ["en"],
+          "properties": {"en": {"type": "string", "minLength": 1}},
           "description": "Information about the norming of the instrument"
         },
         "References": {
@@ -334,6 +344,8 @@
               },
               "Notes": {
                 "type": ["string", "object"],
+                "required": ["en"],
+                "properties": {"en": {"type": "string", "minLength": 1}},
                 "description": "Optional notes about the reference"
               }
             },
@@ -381,6 +393,8 @@
             },
             "Notes": {
               "type": ["string", "object"],
+              "required": ["en"],
+              "properties": {"en": {"type": "string", "minLength": 1}},
               "description": "Additional provenance notes"
             }
           }

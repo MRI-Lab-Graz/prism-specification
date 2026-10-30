@@ -165,3 +165,11 @@ def test_i18n_required():
 ])
 def test_i18n_valid(i18n):
     assert valid(with_i18n(i18n))
+
+
+def test_project_only_required_is_exact():
+    px = SCHEMA["x-prism"]["projectOnlyRequired"]
+    assert px == {"Technical": ["Respondent", "AdministrationMethod", "SoftwarePlatform"]}
+    assert set(px["Technical"]) <= set(SCHEMA["properties"]["Technical"]["required"])
+    assert "projectOnlyRequiredNote" in SCHEMA["x-prism"]
+    assert "SoftwareVersion" in SCHEMA["x-prism"]["projectOnlyRequiredNote"]

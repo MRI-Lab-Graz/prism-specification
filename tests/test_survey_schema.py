@@ -19,6 +19,7 @@ BASE = {
         "Respondent": "self",
         "AdministrationMethod": "online",
     },
+    "I18n": {"Languages": ["en"]},
     "Study": {
         "TaskName": "pss",
         "OriginalName": "Perceived Stress Scale",
@@ -135,3 +136,32 @@ def test_more_text_fields_need_english(path):
     assert valid(_nested(path, {"en": "x"}))
     assert valid(_nested(path, {"en": "x", "de": "y"}))
     assert valid(_nested(path, "plain string"))
+
+
+def with_i18n(value=None, drop=False):
+    d = copy.deepcopy(BASE)
+    if drop:
+        del d["I18n"]
+    else:
+        d["I18n"] = value
+    return d
+
+
+@pytest.mark.parametrize("i18n", [
+    {}, {"Languages": []}, {"Languages": ["en", ""]}, {"Languages": ["en", "en"]},
+    {"Languages": ["en"], "DefaultLanguage": ""}, {"DefaultLanguage": "en"},
+])
+def test_i18n_invalid(i18n):
+    assert not valid(with_i18n(i18n))
+
+
+def test_i18n_required():
+    assert not valid(with_i18n(drop=True))
+
+
+@pytest.mark.parametrize("i18n", [
+    {"Languages": ["en"]}, {"Languages": ["en", "de"]}, {"Languages": ["en", "de-AT"]},
+    {"Languages": ["en", "de"], "DefaultLanguage": "de"},
+])
+def test_i18n_valid(i18n):
+    assert valid(with_i18n(i18n))

@@ -84,6 +84,7 @@ The survey sidecar defines the structure, content, and administrative metadata o
 | Object | Requirement | Description |
 | --- | --- | --- |
 | `Technical` | **REQUIRED** | Platform and respondent details. |
+| `I18n` | **REQUIRED** | Languages the template contains. |
 | `Study` | **REQUIRED** | Instrument identification. |
 | `Scoring` | OPTIONAL | Scoring and interpretation rules. |
 | `Normative` | OPTIONAL | Normative data and reference values. |
@@ -112,6 +113,14 @@ In practice:
 
 When templates are copied from the official library into a project, these project-local `Technical` fields should be completed there.
 
+### Global and project-level fields
+
+- **Global** (describe the instrument, required in every template): `Study.TaskName`, `Study.OriginalName`, `Study.Citation`, `Study.LicenseID`, `Technical.Language`, `I18n.Languages`, `Metadata.Creator`, `Metadata.CreationDate`, `Metadata.SchemaVersion`.
+- **Project-level** (set in the project copy, optional in a global/library template; the schema lists them in `x-prism.projectOnlyRequired`): `Technical.Respondent`, `Technical.AdministrationMethod`, `Technical.SoftwarePlatform`, and `Technical.SoftwareVersion` (required whenever `SoftwarePlatform` names real software).
+- `Study.Version`, `Versions`, `VariantDefinitions`, `ItemCount` and `AdministrationTime` are global descriptions and optional; which form a project used may later become a project setting.
+
+The `required` lists in the schema describe the project copy, which is what dataset validators use. The one exception is `Study.Category`, which is required in the official library only (`x-prism.officialOnlyRequired`), not in a project copy.
+
 ### `Technical` Object Fields
 
 | Key | Requirement | Type | Description |
@@ -119,8 +128,8 @@ When templates are copied from the official library into a project, these projec
 | `StimulusType` | **REQUIRED** | `string` | MUST be `"Questionnaire"`. |
 | `FileFormat` | **REQUIRED** | `string` | MUST be `"tsv"`. |
 | `SoftwarePlatform` | **REQUIRED** | `string` | Project-local platform used for administration (e.g., `"LimeSurvey"`, `"Paper and Pencil"`). |
-| `SoftwareVersion` | OPTIONAL | `string` | Project-local version of the software platform. |
-| `Language` | **REQUIRED** | `string` | Project-local language code actually administered (e.g., `"en"`, `"de-AT"`). |
+| `SoftwareVersion` | OPTIONAL | `string` | Project-local version of the software platform; required whenever `SoftwarePlatform` names real software (project copies only). |
+| `Language` | **REQUIRED** | `string` | Language the instrument was originally published in (e.g., `"en"`, `"de-AT"`); a single tag, never empty. |
 | `Respondent` | **REQUIRED** | `string` | Project-local respondent type (e.g., `"self"`, `"parent"`). |
 | `AdministrationMethod` | **REQUIRED** | `string` | Project-local administration mode (`online`, `paper`, `interview`, `phone`, `mixed`). |
 | `ResponseType` | RECOMMENDED | `array` | Input method (e.g., `["button"]`, `["slider"]`). |
@@ -130,28 +139,29 @@ When templates are copied from the official library into a project, these projec
 
 > Note: PRISM supports bilingual (i18n) *source templates* and single-language *compiled* templates. See the i18n section below.
 
-### `I18n` Object (Optional)
+### `I18n` Object
 
-If present, `I18n` describes which languages are available in the template.
+`I18n` is **REQUIRED**. `Languages` declares which languages the template contains (at least one, no duplicates, each a tag like `en` or `de-AT`); every item text is expected in each of them.
 
 | Key | Requirement | Type | Description |
 | --- | --- | --- | --- |
-| `Languages` | OPTIONAL | `array` | List of language codes available in the template. |
-| `DefaultLanguage` | OPTIONAL | `string` | Default language when compiling/exporting. |
+| `Languages` | **REQUIRED** | `array` | Languages this template contains; one or more unique codes (e.g., `["en", "de-AT"]`). |
+| `DefaultLanguage` | OPTIONAL | `string` | Default language when compiling/exporting; a language code, never empty. |
 | `TranslationMethod` | OPTIONAL | `string` | Translation validation approach (e.g., `forward-backward`). |
 
 ### `Study` Object Fields
 
 | Key | Requirement | Type | Description |
 | --- | --- | --- | --- |
-| `TaskName` | **REQUIRED** | `string` | Project-local task identifier (e.g., `"moodcheck"`). |
-| `OriginalName` | **REQUIRED** | `string` | Full name (e.g., `"Dummy Mood Check"`). |
+| `TaskName` | **REQUIRED** | `string` | Task identifier (e.g., `"moodcheck"`); global: the same in the library and in every project copy. |
+| `OriginalName` | **REQUIRED** | `string` \| `object` | Full name (e.g., `"Dummy Mood Check"`); not empty. As an object it needs a non-empty `en` entry (see English rule). |
 | `ShortName` | OPTIONAL | `string` \| `object` | Common abbreviation (e.g., `DMC-5`). |
 | `Version` | OPTIONAL | `string` | Instrument version. |
-| `Citation` | OPTIONAL | `string` | Reference citation. |
+| `Citation` | **REQUIRED** | `string` | Reference citation (global). |
 | `DOI` | OPTIONAL | `string` | DOI for the instrument. |
 | `Authors` | OPTIONAL | `array` | Instrument authors. |
-| `License` / `LicenseID` / `LicenseURL` | OPTIONAL | `string` | Rights and license information. |
+| `LicenseID` | **REQUIRED** | `string` | Normalized license identifier (global; see the allowed values below). |
+| `License` / `LicenseURL` | OPTIONAL | `string` | Rights and license information. |
 | `Access` | OPTIONAL | `string` | High-level access classification (`public`, `permission-required`, `licensed`, `unknown`). |
 | `CopyrightHolder` | OPTIONAL | `string` | Rights holder (publisher, consortium, etc.). |
 | `PermissionsNote` / `PermissionsURL` | OPTIONAL | `string` | Short usage constraint note and/or a URL to the statement. |
@@ -191,6 +201,8 @@ Any top-level key that is not one of the above objects is considered a question 
 | Key | Requirement | Type | Description |
 | --- | --- | --- | --- |
 | `Description` | **REQUIRED** | `string` \| `object` | The exact text of the question (string) or an i18n map (e.g., `{ "de": "…", "en": "…" }`). |
+| `Help` | OPTIONAL | `string` \| `object` | Help text shown with the question (string or i18n map). |
+| `OtherOption` | OPTIONAL | `object` | Adds an "Other, please specify" choice: `{"enabled": true, "label": "Other"}`; `label` is a string or i18n map. |
 | `Levels` | OPTIONAL | `object` | Mapping of numeric values to labels. Values may be strings or i18n maps. |
 | `Unit` / `Units` | OPTIONAL | `string` | Units (if applicable). |
 | `TermURL` | OPTIONAL | `string` | URL to an ontology term. |
@@ -200,6 +212,18 @@ Any top-level key that is not one of the above objects is considered a question 
 | `AllowedValues` | OPTIONAL | `array` | List of allowed values. |
 | `DataType` | OPTIONAL | `string` | Expected type (`string`, `integer`, `float`). |
 | `SessionHint` / `RunHint` | OPTIONAL | `string` | Used for longitudinal/repeated data mapping. |
+
+**Required fields are filled.** An empty string never counts as a value: `Technical.*`, `Study.TaskName`, `Study.Citation`, `Study.OriginalName` and `Metadata.Creator` must be non-empty, and the enums of `StimulusType`, `FileFormat`, `SoftwarePlatform`, `Respondent` and `AdministrationMethod` do not list `""`.
+
+**English rule.** Every text field of `Study` that takes a language object (`OriginalName`, `Description`, `Instructions`, `Construct`, `License`, `Reliability`, `Validity`, `Norming`, `PermissionsNote`, `Translation.Notes`, `References[].Notes`, `VariantDefinitions[].Description`) must carry a non-empty `en` entry when written as an object; a plain string is always fine and other languages are optional additions. `ShortName` and `Version` are free.
+
+### `Metadata` Object Fields
+
+| Key | Requirement | Type | Description |
+| --- | --- | --- | --- |
+| `SchemaVersion` | **REQUIRED** | `string` | Schema version the file was written for (`major.minor.patch`). |
+| `CreationDate` | **REQUIRED** | `string` | Date of creation (`YYYY-MM-DD`). |
+| `Creator` | **REQUIRED** | `string` | Who built this template (official library: `PRISM Studio`); not empty. |
 
 ### `Study.References` Objects
 
@@ -252,8 +276,9 @@ Each entry in `Study.References` must specify a `Type` from the available enum, 
     }
   },
   "Metadata": {
-    "SchemaVersion": "1.1.1",
-    "CreationDate": "2025-01-01"
+    "SchemaVersion": "2.0.0",
+    "CreationDate": "2025-01-01",
+    "Creator": "PRISM Studio"
   },
   "Q01": {
     "Description": {
@@ -276,27 +301,28 @@ Each entry in `Study.References` must specify a `Type` from the available enum, 
 
 <!-- BEGIN SCHEMA REFERENCE (generated by scripts/generate_schema_reference.py; do not edit) -->
 
-## Field reference (`survey.schema.json`, version 1.1.1)
+## Field reference (`survey.schema.json`, version 2.0.0)
 
 Generated from [`schemas/stable/survey.schema.json`](../schemas/stable/survey.schema.json). Nested fields are shown as `Block.Field`; `[]` marks list items. *Required* applies within its parent block.
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `Technical` | object | yes | Technical survey properties |
-| `Technical.StimulusType` | string | yes | Must be 'Questionnaire' for survey data Allowed: `Questionnaire`, ``. |
-| `Technical.FileFormat` | string | yes | Survey data file format Allowed: `tsv`, ``. |
-| `Technical.SoftwarePlatform` | string | yes | Software platform used for data collection (LimeSurvey, PsychoPy, Pavlovia, Paper and Pencil, etc.) Allowed: `LimeSurvey`, `PsychoPy`, `Pavlovia`, `Paper and Pencil`, `Other`, ``. |
+| `Technical.StimulusType` | string | yes | Must be 'Questionnaire' for survey data Allowed: `Questionnaire`. |
+| `Technical.FileFormat` | string | yes | Survey data file format Allowed: `tsv`. |
+| `Technical.SoftwarePlatform` | string | yes | Software platform used for data collection (LimeSurvey, PsychoPy, Pavlovia, Paper and Pencil, etc.) Allowed: `LimeSurvey`, `PsychoPy`, `Pavlovia`, `Paper and Pencil`, `Other`. |
 | `Technical.SoftwareVersion` | string | no | Version of the survey software platform (not required for Paper and Pencil) |
-| `Technical.Language` | string | yes | Language of the questionnaire (e.g., en, en-US, de-AT) |
-| `Technical.Respondent` | string | yes | Who provided the responses Allowed: `self`, `clinician`, `parent`, `teacher`, `caregiver`, `other`, ``. |
-| `Technical.AdministrationMethod` | string | yes | How the survey was administered Allowed: `online`, `paper`, `interview`, `phone`, `mixed`, ``. |
-| `I18n` | object | no | Internationalization settings for multi-language surveys |
-| `I18n.Languages` | array | no | List of available languages (e.g., ['en', 'de', 'fr']) |
+| `Technical.Language` | string | yes | Language the instrument was originally published in |
+| `Technical.Respondent` | string | yes | Who provided the responses Allowed: `self`, `clinician`, `parent`, `teacher`, `caregiver`, `other`. |
+| `Technical.AdministrationMethod` | string | yes | How the survey was administered Allowed: `online`, `paper`, `interview`, `phone`, `mixed`. |
+| `I18n` | object | yes | Internationalization settings for multi-language surveys |
+| `I18n.Languages` | array | yes | Languages this template contains; every item text is expected in each of them |
 | `I18n.DefaultLanguage` | string | no | Default/primary language of the instrument |
 | `I18n.TranslationMethod` | string | no | Method used for translation validation Allowed: `forward-backward`, `committee`, `parallel`, `original`, `validated-translation`, ``. |
 | `Study` | object | yes | Study-specific survey parameters |
 | `Study.TaskName` | string | yes | Short task identifier matching filename (e.g., bdi, phq9, bfi-s) |
 | `Study.OriginalName` | string / object | yes | Full canonical name of the instrument (e.g., Beck Depression Inventory) |
+| `Study.OriginalName.en` | string | yes |  |
 | `Study.ShortName` | string / object | no | Common abbreviation (e.g., BDI-II, PHQ-9) |
 | `Study.Version` | string / object | no | Version of the instrument (e.g., II, 5.0, 21-item) |
 | `Study.Versions` | array | no | List of available versions/forms of this instrument (e.g., ['short', 'long', 'screening']). Use when the same instrument has multiple validated forms with diff… |
@@ -305,24 +331,32 @@ Generated from [`schemas/stable/survey.schema.json`](../schemas/stable/survey.sc
 | `Study.VariantDefinitions[].ItemCount` | integer / null | no | Number of items expected in this variant. |
 | `Study.VariantDefinitions[].ScaleType` | string | no | Primary response scale family used in this variant. Allowed: `likert`, `vas`, `visual-analogue`, `categorical`, `binary`, `free-text`, `other`, ``. |
 | `Study.VariantDefinitions[].Description` | string / object | no | Optional description of this variant. |
+| `Study.VariantDefinitions[].Description.en` | string | yes |  |
 | `Study.Authors` | array | no | Authors of the instrument |
 | `Study.Citation` | string | yes | DOI or citation for the instrument |
 | `Study.DOI` | string | no | Digital Object Identifier (DOI) for the instrument; use the canonical DOI string (10.x/...) without protocol prefixes or leave empty when unavailable |
 | `Study.License` | string / object | no | License statement for this instrument as provided by the source registry |
+| `Study.License.en` | string | yes |  |
 | `Study.LicenseID` | string | yes | Normalized license identifier (prefer SPDX or Creative Commons identifiers) Allowed: `CC-BY-4.0`, `CC-BY-SA-4.0`, `CC-BY-ND-4.0`, `CC-BY-NC-4.0`, `CC-BY-NC-SA-4.0`, `CC-BY-NC-ND-4.0`, `MIT`, `Apache-2.0`, `GPL-3.0-only`, `GPL-3.0-or-later`, `LGPL-3.0-only`, `BSD-3-Clause`, `Unlicense`, `PDDL-1.0`, `CC0-1.0`, `Proprietary`, `Other`. |
 | `Study.Category` | string | yes | Content-domain category for official library instruments (mandatory for official/library/survey templates only; see x-prism.officialOnlyRequired) Allowed: `Personality & Individual Differences`, `Mood, Anxiety & Clinical Screening`, `Well-being & Life Satisfaction`, `Social, Relationships & Attachment`, `Addictive & Problematic Behaviors`, `Self-Concept & Self-Esteem`, `Aggression, Antisocial & Dark Traits`, `Cognitive & Executive Function`, `Autism & Neurodevelopmental`, `Sleep, Health & Physical`, `Beliefs, Values & Worldview`, `Educational & Occupational`, `Other / Uncategorized`. |
 | `Study.LicenseURL` | string | no | License URL when available (e.g., creativecommons.org link) |
 | `Study.CopyrightHolder` | string | no | Rights holder for the instrument (e.g., publisher, author group) |
 | `Study.Access` | string | no | High-level access/permission classification for transparency Allowed: `public`, `permission-required`, `licensed`, `unknown`, ``. |
 | `Study.PermissionsNote` | string / object | no | Short note describing permissions/usage constraints |
+| `Study.PermissionsNote.en` | string | yes |  |
 | `Study.PermissionsURL` | string | no | URL to permission statement or licensing portal |
 | `Study.TermURL` | string | no | URL to formal definition (e.g., PhenX, SNOMED) |
 | `Study.Construct` | string / object | no | Primary psychological construct measured (e.g., depression, anxiety, stress) |
+| `Study.Construct.en` | string | yes |  |
 | `Study.Keywords` | array | no | Keywords describing the instrument |
 | `Study.Description` | string / object | no | Detailed description or abstract of the instrument |
+| `Study.Description.en` | string | yes |  |
 | `Study.Instructions` | string / object | no | Instructions given to the participant |
+| `Study.Instructions.en` | string | yes |  |
 | `Study.Reliability` | string / object | no | Information about the reliability of the instrument |
+| `Study.Reliability.en` | string | yes |  |
 | `Study.Validity` | string / object | no | Information about the validity of the instrument |
+| `Study.Validity.en` | string | yes |  |
 | `Study.Subscales` | array | no | List of subscale names if applicable |
 | `Study.ItemCount` | integer / null | no | Number of items in the instrument |
 | `Study.AgeRange` | object / string | no | Target age range for the instrument in years |
@@ -335,6 +369,7 @@ Generated from [`schemas/stable/survey.schema.json`](../schemas/stable/survey.sc
 | `Study.ScoringTime.min` | number | yes | Minimum estimated minutes |
 | `Study.ScoringTime.max` | number | yes | Maximum estimated minutes |
 | `Study.Norming` | string / object | no | Information about the norming of the instrument |
+| `Study.Norming.en` | string | yes |  |
 | `Study.References` | array | no | Structured reference list for the instrument (primary paper, manual, translation, norms, validation, etc.) |
 | `Study.References[].Type` | string | yes | Reference type Allowed: `primary`, `manual`, `translation`, `validation`, `norms`, `other`, ``. |
 | `Study.References[].Citation` | string | no | Human-readable citation |
@@ -342,6 +377,7 @@ Generated from [`schemas/stable/survey.schema.json`](../schemas/stable/survey.sc
 | `Study.References[].URL` | string | no | URL for the reference |
 | `Study.References[].Year` | integer / null | no | Publication year |
 | `Study.References[].Notes` | string / object | no | Optional notes about the reference |
+| `Study.References[].Notes.en` | string | yes |  |
 | `Study.Translation` | object | no | Translation/adaptation provenance (especially for non-original language versions) |
 | `Study.Translation.SourceLanguage` | string | no | Source language of the instrument |
 | `Study.Translation.TargetLanguage` | string | no | Target language used in this dataset |
@@ -349,6 +385,7 @@ Generated from [`schemas/stable/survey.schema.json`](../schemas/stable/survey.sc
 | `Study.Translation.Method` | string | no | Translation/adaptation method (if different from I18n.TranslationMethod) |
 | `Study.Translation.Reference` | string | no | Citation/DOI/URL for the translation/adaptation reference |
 | `Study.Translation.Notes` | string / object | no | Additional provenance notes |
+| `Study.Translation.Notes.en` | string | yes |  |
 | `Normative` | object | no | Normative data and reference values |
 | `Normative.ReferencePopulation` | string | no | Population on which normative data is based |
 | `Normative.ReferenceSource` | string | no | Citation for normative data |
@@ -356,6 +393,6 @@ Generated from [`schemas/stable/survey.schema.json`](../schemas/stable/survey.sc
 | `Metadata` | object | yes | Administrative metadata |
 | `Metadata.SchemaVersion` | string | yes |  |
 | `Metadata.CreationDate` | string | yes | Date of creation |
-| `Metadata.Creator` | string | no |  |
+| `Metadata.Creator` | string | yes | Who built this template (official library: PRISM Studio) |
 
 <!-- END SCHEMA REFERENCE -->

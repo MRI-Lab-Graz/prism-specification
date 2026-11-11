@@ -173,3 +173,38 @@ def test_project_only_required_is_exact():
     assert set(px["Technical"]) <= set(SCHEMA["properties"]["Technical"]["required"])
     assert "projectOnlyRequiredNote" in SCHEMA["x-prism"]
     assert "SoftwareVersion" in SCHEMA["x-prism"]["projectOnlyRequiredNote"]
+
+
+def _with_period(value):
+    doc = copy.deepcopy(BASE)
+    doc["Study"]["RecallPeriod"] = value
+    return doc
+
+
+@pytest.mark.parametrize("value", ["past 2 weeks", "P14D", {"en": "past 2 weeks", "de": "letzte 2 Wochen"}])
+def test_study_recall_period_accepts_text_and_english_object(value):
+    assert not list(V.iter_errors(_with_period(value)))
+
+
+@pytest.mark.parametrize("value", ["", 14, ["past 2 weeks"], {"de": "letzte 2 Wochen"}, {"en": ""}])
+def test_study_recall_period_refuses_empty_wrong_type_or_no_english(value):
+    assert list(V.iter_errors(_with_period(value)))
+
+
+def test_an_item_may_set_its_own_recall_period_and_the_schema_refuses_an_empty_one():
+    doc = copy.deepcopy(BASE)
+    doc["Q01"] = {"Description": {"en": "Today I felt tired"}, "RecallPeriod": "today"}
+    assert not list(V.iter_errors(doc))
+    doc["Q01"]["RecallPeriod"] = ""
+    assert list(V.iter_errors(doc))
+
+
+def test_a_template_without_recall_period_still_validates():
+    assert not list(V.iter_errors(copy.deepcopy(BASE)))
+
+
+def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
+    stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
+    assert stable["version"] == "2.1.0" and stable["$id"].endswith("/v2.1.0")
+    old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
+    assert old["version"] == "2.0.0"

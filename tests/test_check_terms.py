@@ -358,3 +358,18 @@ def test_termurl_rejects_unknown_system_and_wrong_url_shape():
 def test_termurl_loinc_agrees_with_the_loinc_field():
     reg = {"cortisol": _parent(LOINC="2143-6", TermURL={"loinc": "https://loinc.org/2143-7"})}
     assert "LOINC" in _text(check_registry(reg))
+
+
+# --- one ID names one concept: no local ID in two modalities -------------------
+
+def test_same_id_in_two_modalities_is_a_problem():
+    one = {"cortisol": _parent()}
+    other = {"cortisol": _parent(Level="variable")}
+    problems = _mod.cross_registry_problems({"biosample": one, "survey": other})
+    assert any("cortisol" in p and "biosample" in p and "survey" in p for p in problems)
+    assert _mod.cross_registry_problems({"biosample": one, "environment": {"air-temperature": _parent("air-temperature")}}) == []
+
+
+def test_all_shipped_modalities_share_no_id():
+    registries = {n: load_terms(REPO / "terms" / n)[0] for n in _mod.term_modalities(REPO)}
+    assert _mod.cross_registry_problems(registries) == []

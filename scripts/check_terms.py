@@ -177,6 +177,17 @@ def check_registry(registry: dict[str, dict], specimen_types: list[str] | None) 
     return problems
 
 
+def cross_registry_problems(registries: dict[str, dict[str, dict]]) -> list[str]:
+    """A TermID names one concept: the same local ID in two modalities is a problem."""
+    seen: dict[str, str] = {}
+    problems = []
+    for modality, registry in registries.items():
+        for key in registry:
+            if seen.setdefault(key, modality) != modality:
+                problems.append(f"{key}: ID exists in both {seen[key]} and {modality}; an ID must name one concept")
+    return problems
+
+
 def context_values(schema_file: Path, field: str | None) -> list[str] | None:
     """The enum at a dotted schema field such as Technical.SpecimenType ([] when absent; None without a field)."""
     if field is None:
@@ -226,9 +237,13 @@ def main(argv: list[str] | None = None) -> int:
     else:
         ap.error("give --all, --modality NAME, or --terms DIR and --schema FILE")
     problems = []
+    registries = {}
     for prefix, terms, context in jobs:
         registry, found = load_terms(terms)
+        registries[prefix or terms.name] = registry
         problems += [prefix + p for p in found + check_registry(registry, context)]
+    if args.all:
+        problems += cross_registry_problems({k.rstrip("/"): v for k, v in registries.items()})
     for problem in problems:
         print(problem)
     return 1 if problems else 0

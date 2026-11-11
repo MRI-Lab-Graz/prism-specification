@@ -105,8 +105,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.0.0"
-    assert SCHEMA["$id"].endswith("/v2.0.0")
+    assert SCHEMA["version"] == "2.1.0"
+    assert SCHEMA["$id"].endswith("/v2.1.0")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 

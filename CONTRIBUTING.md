@@ -76,7 +76,16 @@ A term is one JSON file in `terms/<modality>/`, named after the local part of it
   `terms/biosample/cortisol.saliva.json`: `TermID` (`prism:cortisol.saliva`),
   `Level` (`analyte-specimen`), `Parent`, `SpecimenType`, `Units` (UCUM,
   e.g. `nmol/L`), optional `AlternativeUnits`, `MinValue`, `WarnMaxValue`,
-  `LOINC`, `Equivalents`, `Status`.
+  `LOINC`, `TermURL`, `Equivalents`, `Status`.
+* **The `prism:` namespace** is `https://w3id.org/prism-specification/terms/`: `prism:cortisol` is
+  `https://w3id.org/prism-specification/terms/biosample/cortisol` (`check_terms.expand`). An ID names one
+  concept and is unique across all modalities; the modality is part of the URL, not of the ID.
+* **`TermURL`** (optional, on parent or child term) cross-references the term to other
+  vocabularies: an object `{system: URL}`. Systems: `snomed`
+  (`https://snomed.info/id/<id>`), `loinc` (`https://loinc.org/<code>`), `chebi`
+  (`http://purl.obolibrary.org/obo/CHEBI_<id>`), `ncit`
+  (`http://purl.obolibrary.org/obo/NCIT_C<id>`). The check validates the URL shape per
+  system, not that the code exists, so cite the source in the pull request.
 
 Rules (CI enforces them with `python scripts/check_terms.py`):
 
@@ -88,7 +97,7 @@ Rules (CI enforces them with `python scripts/check_terms.py`):
   never by renaming the ID.
 * `Group` is optional: a short heading (1-60 characters, one line) under which a list of terms is clustered, e.g. `Air quality`.
 * A user's own column name goes into `Aliases`, never into the ID.
-* Do not invent clinical ranges or LOINC codes; leave them out unless you can
+* Do not invent clinical ranges or LOINC/SNOMED codes; leave them out unless you can
   cite them in the pull request.
 
 Check your files:

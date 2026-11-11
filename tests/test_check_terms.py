@@ -332,3 +332,59 @@ def test_every_environment_term_has_one_of_the_six_groups():
         found.setdefault(json.loads(f.read_text(encoding="utf-8")).get("Group"), []).append(f.stem)
     assert {g: sorted(v) for g, v in found.items()} == {g: sorted(v.split()) for g, v in GROUPS.items()}
     assert sum(len(v) for v in found.values()) == 31
+
+
+# --- TermURL: cross-references to other vocabularies ---------------------------
+
+def test_termurl_accepts_known_systems_with_matching_urls():
+    urls = {"snomed": "https://snomed.info/id/63638003",
+            "loinc": "https://loinc.org/2143-6",
+            "chebi": "http://purl.obolibrary.org/obo/CHEBI_17347",
+            "ncit": "http://purl.obolibrary.org/obo/NCIT_C2993"}
+    assert check_registry({"cortisol": _parent(TermURL=urls)}) == []
+
+
+def test_termurl_must_be_an_object_of_strings():
+    assert "TermURL" in _text(check_registry({"cortisol": _parent(TermURL=["https://snomed.info/id/1"])}))
+    assert "TermURL" in _text(check_registry({"cortisol": _parent(TermURL={"snomed": 5})}))
+
+
+def test_termurl_rejects_unknown_system_and_wrong_url_shape():
+    assert "unknown" in _text(check_registry({"cortisol": _parent(TermURL={"wikipedia": "https://x.org/a"})})).lower()
+    for bad in ("https://example.org/id/1", "https://snomed.info/id/abc", "snomed:63638003", "http://snomed.info/id/1"):
+        assert "snomed" in _text(check_registry({"cortisol": _parent(TermURL={"snomed": bad})})), bad
+
+
+def test_termurl_loinc_agrees_with_the_loinc_field():
+    reg = {"cortisol": _parent(LOINC="2143-6", TermURL={"loinc": "https://loinc.org/2143-7"})}
+    assert "LOINC" in _text(check_registry(reg))
+
+
+# --- one ID names one concept: no local ID in two modalities -------------------
+
+def test_same_id_in_two_modalities_is_a_problem():
+    one = {"cortisol": _parent()}
+    other = {"cortisol": _parent(Level="variable")}
+    problems = _mod.cross_registry_problems({"biosample": one, "survey": other})
+    assert any("cortisol" in p and "biosample" in p and "survey" in p for p in problems)
+    assert _mod.cross_registry_problems({"biosample": one, "environment": {"air-temperature": _parent("air-temperature")}}) == []
+
+
+def test_all_shipped_modalities_share_no_id():
+    registries = {n: load_terms(REPO / "terms" / n)[0] for n in _mod.term_modalities(REPO)}
+    assert _mod.cross_registry_problems(registries) == []
+
+
+# --- the prism: namespace expands to a resolvable URL --------------------------
+
+def test_expand_gives_the_url_of_the_term_file_in_its_modality_folder():
+    assert _mod.expand("prism:cortisol", REPO) == "https://w3id.org/prism-specification/terms/biosample/cortisol"
+    assert _mod.expand("prism:cortisol.serum", REPO).endswith("/terms/biosample/cortisol.serum")
+    assert _mod.expand("prism:air-temperature", REPO).endswith("/terms/environment/air-temperature")
+
+
+def test_expand_refuses_unknown_ids_and_prefixes():
+    import pytest
+    for bad in ("prism:no-such-term", "bids:cortisol", "cortisol", "prism:../x"):
+        with pytest.raises(ValueError):
+            _mod.expand(bad, REPO)

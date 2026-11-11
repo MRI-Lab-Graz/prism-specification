@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:prolactin",
+  "Level": "analyte",
+  "Label": "prolactin",
+  "Aliases": [
+    "prl"
+  ],
+  "Description": "Prolactin (PRL), a pituitary hormone; measured in serum.",
+  "Status": "official"
+}

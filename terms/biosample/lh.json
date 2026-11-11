@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:lh",
+  "Level": "analyte",
+  "Label": "luteinizing hormone",
+  "Aliases": [
+    "lh"
+  ],
+  "Description": "Luteinizing hormone (LH), a pituitary gonadotropin; measured in serum.",
+  "Status": "official"
+}

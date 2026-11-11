@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:estradiol",
+  "Level": "analyte",
+  "Label": "estradiol",
+  "Aliases": [
+    "e2",
+    "oestradiol"
+  ],
+  "Description": "Estradiol (E2), the main estrogen; measured in serum.",
+  "Status": "official"
+}

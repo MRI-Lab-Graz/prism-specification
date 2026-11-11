@@ -26,6 +26,13 @@ _SLUG = re.compile(r"^[a-z][a-z0-9-]{0,62}$")  # at most 63 characters per segme
 _CF_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 _LOINC = re.compile(r"^\d+-\d$")
 _STATUSES = ("official", "deprecated")
+# TermURL: one canonical URL per external vocabulary; add a system here to allow it.
+_TERMURL = {
+    "snomed": re.compile(r"^https://snomed\.info/id/\d{6,18}$"),
+    "loinc": re.compile(r"^https://loinc\.org/\d+-\d$"),
+    "chebi": re.compile(r"^https?://purl\.obolibrary\.org/obo/CHEBI_\d+$"),
+    "ncit": re.compile(r"^https?://purl\.obolibrary\.org/obo/NCIT_C\d+$"),
+}
 
 
 _STRINGS = ("Level", "Label", "Description", "Parent", "SpecimenType", "Units", "LOINC", "CFStandardName", "Group")
@@ -50,6 +57,16 @@ def type_problems(term: dict, where: str) -> list[str]:
         and all(isinstance(k, str) and isinstance(v, str) for k, v in term["Levels"].items())
     ):
         problems.append(f"{where}: Levels must be an object of strings")
+    urls = term.get("TermURL")
+    if "TermURL" in term:
+        if not (isinstance(urls, dict) and all(isinstance(v, str) for v in urls.values())):
+            problems.append(f"{where}: TermURL must be an object of strings")
+        else:
+            for system, url in urls.items():
+                if system not in _TERMURL:
+                    problems.append(f"{where}: TermURL has an unknown system {system!r} (known: {', '.join(_TERMURL)})")
+                elif not _TERMURL[system].fullmatch(url):
+                    problems.append(f"{where}: TermURL {system} {url!r} must match {_TERMURL[system].pattern}")
     for key in _NUMBERS:
         if key in term and (isinstance(term[key], bool) or not isinstance(term[key], (int, float))):
             problems.append(f"{where}: {key} must be a number")
@@ -111,6 +128,10 @@ def check_registry(registry: dict[str, dict], specimen_types: list[str] | None) 
                 problems.append(f"{key}: ReplacedBy {replaced!r} is not a term of this registry")
         if "LOINC" in term and not _LOINC.fullmatch(str(term["LOINC"])):
             problems.append(f"{key}: LOINC {term['LOINC']!r} does not look like 2143-6")
+
+        loinc_url = term.get("TermURL", {}).get("loinc")
+        if loinc_url and "LOINC" in term and loinc_url.rpartition("/")[2] != str(term["LOINC"]):
+            problems.append(f"{key}: TermURL loinc {loinc_url!r} disagrees with LOINC {term['LOINC']!r}")
 
         if "CFStandardName" in term and not _CF_NAME.fullmatch(term["CFStandardName"]):
             problems.append(f"{key}: CFStandardName {term['CFStandardName']!r} must match {_CF_NAME.pattern}")

@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:fsh",
+  "Level": "analyte",
+  "Label": "follicle-stimulating hormone",
+  "Aliases": [
+    "fsh"
+  ],
+  "Description": "Follicle-stimulating hormone (FSH), a pituitary gonadotropin; measured in serum.",
+  "Status": "official"
+}

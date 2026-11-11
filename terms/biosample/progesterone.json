@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:progesterone",
+  "Level": "analyte",
+  "Label": "progesterone",
+  "Aliases": [
+    "p4"
+  ],
+  "Description": "Progesterone, a steroid hormone of the menstrual cycle and pregnancy; measured in serum.",
+  "Status": "official"
+}

@@ -216,7 +216,7 @@ Any top-level key that is not one of the above objects is considered a question 
 
 **Required fields are filled.** An empty string never counts as a value: `Technical.*`, `Study.TaskName`, `Study.Citation`, `Study.OriginalName` and `Metadata.Creator` must be non-empty, and the enums of `StimulusType`, `FileFormat`, `SoftwarePlatform`, `Respondent` and `AdministrationMethod` do not list `""`.
 
-**English rule.** Every text field of `Study` that takes a language object (`OriginalName`, `Description`, `Instructions`, `Construct`, `License`, `Reliability`, `Validity`, `Norming`, `PermissionsNote`, `Translation.Notes`, `References[].Notes`, `VariantDefinitions[].Description`) must carry a non-empty `en` entry when written as an object; a plain string is always fine and other languages are optional additions. `ShortName` and `Version` are free.
+**English rule.** Every text field of `Study` that takes a language object (`OriginalName`, `Description`, `Instructions`, `RecallPeriod`, `Construct`, `License`, `Reliability`, `Validity`, `Norming`, `PermissionsNote`, `Translation.Notes`, `References[].Notes`, `VariantDefinitions[].Description`) must carry a non-empty `en` entry when written as an object; a plain string is always fine and other languages are optional additions. `ShortName` and `Version` are free.
 
 ### `Metadata` Object Fields
 

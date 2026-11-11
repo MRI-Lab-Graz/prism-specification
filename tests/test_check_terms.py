@@ -373,3 +373,18 @@ def test_same_id_in_two_modalities_is_a_problem():
 def test_all_shipped_modalities_share_no_id():
     registries = {n: load_terms(REPO / "terms" / n)[0] for n in _mod.term_modalities(REPO)}
     assert _mod.cross_registry_problems(registries) == []
+
+
+# --- the prism: namespace expands to a resolvable URL --------------------------
+
+def test_expand_gives_the_url_of_the_term_file_in_its_modality_folder():
+    assert _mod.expand("prism:cortisol", REPO) == "https://w3id.org/prism-specification/terms/biosample/cortisol"
+    assert _mod.expand("prism:cortisol.serum", REPO).endswith("/terms/biosample/cortisol.serum")
+    assert _mod.expand("prism:air-temperature", REPO).endswith("/terms/environment/air-temperature")
+
+
+def test_expand_refuses_unknown_ids_and_prefixes():
+    import pytest
+    for bad in ("prism:no-such-term", "bids:cortisol", "cortisol", "prism:../x"):
+        with pytest.raises(ValueError):
+            _mod.expand(bad, REPO)

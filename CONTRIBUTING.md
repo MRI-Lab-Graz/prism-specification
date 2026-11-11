@@ -77,6 +77,9 @@ A term is one JSON file in `terms/<modality>/`, named after the local part of it
   `Level` (`analyte-specimen`), `Parent`, `SpecimenType`, `Units` (UCUM,
   e.g. `nmol/L`), optional `AlternativeUnits`, `MinValue`, `WarnMaxValue`,
   `LOINC`, `TermURL`, `Equivalents`, `Status`.
+* **The `prism:` namespace** is `https://w3id.org/prism-specification/terms/`: `prism:cortisol` is
+  `https://w3id.org/prism-specification/terms/biosample/cortisol` (`check_terms.expand`). An ID names one
+  concept and is unique across all modalities; the modality is part of the URL, not of the ID.
 * **`TermURL`** (optional, on parent or child term) cross-references the term to other
   vocabularies: an object `{system: URL}`. Systems: `snomed`
   (`https://snomed.info/id/<id>`), `loinc` (`https://loinc.org/<code>`), `chebi`

@@ -177,6 +177,22 @@ def check_registry(registry: dict[str, dict], specimen_types: list[str] | None) 
     return problems
 
 
+# The prism: prefix is a namespace: prism:<local> is the URL of the term's file, found by looking the
+# local ID up in every modality's term folder. w3id.org redirects to wherever the repository is published.
+NAMESPACE = "https://w3id.org/prism-specification/terms/"
+
+
+def expand(term_id: str, repo: Path = Path(__file__).resolve().parent.parent) -> str:
+    """The URL of a prism: term (ValueError when the ID is not a term of this repository)."""
+    prefix, _, local = term_id.partition(":")
+    if prefix != "prism" or not re.fullmatch(_SLUG.pattern[1:-1] + r"(\.[a-z][a-z0-9-]{0,62})?", local):
+        raise ValueError(f"{term_id!r} is not a prism:<id> term")
+    for modality in term_modalities(repo):
+        if (Path(repo) / "terms" / modality / f"{local}.json").is_file():
+            return f"{NAMESPACE}{modality}/{local}"
+    raise ValueError(f"{term_id!r} is not a term of this repository")
+
+
 def cross_registry_problems(registries: dict[str, dict[str, dict]]) -> list[str]:
     """A TermID names one concept: the same local ID in two modalities is a problem."""
     seen: dict[str, str] = {}

@@ -25,6 +25,7 @@ ID_PREFIXES = ("prism", "bids")
 _SLUG = re.compile(r"^[a-z][a-z0-9-]{0,62}$")  # at most 63 characters per segment
 _CF_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 _LOINC = re.compile(r"^\d+-\d$")
+_LOCAL_ID = re.compile(r"[a-z][a-z0-9-]{0,62}(\.[a-z][a-z0-9-]{0,62})?")  # <analyte>[.<specimen>]
 _STATUSES = ("official", "deprecated")
 # TermURL: one canonical URL per external vocabulary; add a system here to allow it.
 _TERMURL = {
@@ -185,7 +186,7 @@ NAMESPACE = "https://w3id.org/prism-specification/terms/"
 def expand(term_id: str, repo: Path = Path(__file__).resolve().parent.parent) -> str:
     """The URL of a prism: term (ValueError when the ID is not a term of this repository)."""
     prefix, _, local = term_id.partition(":")
-    if prefix != "prism" or not re.fullmatch(_SLUG.pattern[1:-1] + r"(\.[a-z][a-z0-9-]{0,62})?", local):
+    if prefix != "prism" or not _LOCAL_ID.fullmatch(local):
         raise ValueError(f"{term_id!r} is not a prism:<id> term")
     for modality in term_modalities(repo):
         if (Path(repo) / "terms" / modality / f"{local}.json").is_file():
@@ -256,10 +257,10 @@ def main(argv: list[str] | None = None) -> int:
     registries = {}
     for prefix, terms, context in jobs:
         registry, found = load_terms(terms)
-        registries[prefix or terms.name] = registry
+        registries[terms.name] = registry
         problems += [prefix + p for p in found + check_registry(registry, context)]
     if args.all:
-        problems += cross_registry_problems({k.rstrip("/"): v for k, v in registries.items()})
+        problems += cross_registry_problems(registries)
     for problem in problems:
         print(problem)
     return 1 if problems else 0

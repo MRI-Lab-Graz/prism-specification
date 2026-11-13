@@ -105,8 +105,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.1.0"
-    assert SCHEMA["$id"].endswith("/v2.1.0")
+    assert SCHEMA["version"] == "2.2.0"
+    assert SCHEMA["$id"].endswith("/v2.2.0")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 
@@ -205,6 +205,42 @@ def test_a_template_without_recall_period_still_validates():
 
 def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
     stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
-    assert stable["version"] == "2.1.0" and stable["$id"].endswith("/v2.1.0")
+    assert stable["version"] == "2.2.0" and stable["$id"].endswith("/v2.2.0")
     old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
     assert old["version"] == "2.0.0"
+
+
+# Scoring facts live in the recipe: the template no longer defines Subscales, ItemCount or Reversed.
+STUDY_PROPS = SCHEMA["properties"]["Study"]["properties"]
+ITEM_PROPS = SCHEMA["additionalProperties"]["oneOf"][0]["properties"]
+
+
+def test_scoring_facts_are_not_template_fields():
+    assert "Subscales" not in STUDY_PROPS
+    assert "ItemCount" not in STUDY_PROPS
+    assert "Reversed" not in ITEM_PROPS
+
+
+def test_variant_item_count_is_kept_but_deprecated():
+    variant = STUDY_PROPS["VariantDefinitions"]["items"]["properties"]["ItemCount"]
+    assert variant["description"].startswith("Deprecated and ignored")
+
+
+def test_an_old_template_with_subscales_item_count_and_reversed_still_validates():
+    doc = copy.deepcopy(BASE)
+    doc["Study"]["Subscales"] = ["Helplessness", "Self-efficacy"]
+    doc["Study"]["ItemCount"] = 10
+    doc["Q01"]["Reversed"] = True
+    assert valid(doc)
+
+
+def test_a_template_with_a_variant_item_count_still_validates():
+    doc = copy.deepcopy(BASE)
+    doc["Study"]["VariantDefinitions"] = [{"VariantID": "short", "ItemCount": 4}]
+    assert valid(doc)
+
+
+def test_survey_schema_2_2_0_with_2_1_0_archived_unchanged():
+    assert SCHEMA["version"] == "2.2.0" and SCHEMA["$id"].endswith("/v2.2.0")
+    old = json.loads((ROOT / "schemas/archive/survey/2.1.0.schema.json").read_text())
+    assert old["version"] == "2.1.0"  # exact-copy check: scripts/check_schema_versions.py in CI

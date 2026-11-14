@@ -140,6 +140,7 @@ are never modified or deleted; a changed stable modality schema carries a bumped
 `version`; a bumped version needs the previous version archived as an exact copy.
 Run it before opening the pull request:
 `python scripts/check_schema_versions.py origin/main HEAD`.
+The recipe schema (`recipe.survey.schema.json`) is versioned and archived like the modality schemas.
 
 Within a major version a schema only adds optional things; a file written against an older version
 stays valid.

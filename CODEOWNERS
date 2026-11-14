@@ -3,3 +3,4 @@
 # Core review: filename grammar and dataset_description change what every modality accepts.
 /schemas/stable/entities.schema.json             @karl-koschutnig
 /schemas/stable/dataset_description.schema.json  @karl-koschutnig
+/schemas/stable/recipe.survey.schema.json       @karl-koschutnig

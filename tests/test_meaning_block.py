@@ -186,6 +186,11 @@ def tree(tmp_path):
     root = tmp_path / "repo"
     for folder in ("schemas", "specs", "scripts"):
         shutil.copytree(REPO / folder, root / folder, ignore=shutil.ignore_patterns("__pycache__"))
+    # the real biosample schema is released already: put the unstamped one back so a release can be tried
+    archive = root / "schemas/archive/biosample"
+    previous = max(archive.glob("*.schema.json"), key=lambda p: _version(p.name[:-len(".schema.json")]))
+    (root / "schemas/stable/biosample.schema.json").write_bytes(previous.read_bytes())
+    previous.unlink()
     return root
 
 
@@ -268,7 +273,7 @@ NEW = {"IsAbout": LINK, "LevelIsAbout": {"1": LINK}, "TermURL": {"snomed": "http
 # one tiny valid document per modality; the "meaning" variant adds the new fields (a hand-written fixture
 # because the repository has none for most modalities; environment's real fixture is in test_environment_schema.py)
 OLD_DOCS = {
-    "biometrics": [{"Technical": {"Type": "t", "FileFormat": "tsv", "Equipment": "e"},
+    "biometrics": [{"Technical": {"Type": "Biometrics", "FileFormat": "tsv", "Equipment": "e"},
                     "Study": {"BiometricName": "b", "OriginalName": "o", "Description": "d"},
                     "Metadata": META, "weight": {"Description": "w", "Units": "kg", "Levels": {"1": "a"}, "TermURL": "https://x.org/d"}}],
     "biosample": [{"Technical": {"SpecimenType": "saliva"}, "Study": {"BiosampleName": "cortisol"}, "Metadata": META,
@@ -276,21 +281,22 @@ OLD_DOCS = {
     "environment": [{"Technical": {"Source": "open-meteo"}, "Study": {"EnvironmentName": "weather"}, "Metadata": META,
                      "temp": {"Term": "prism:air-temperature", "Window": {"Start": "P3D", "End": "PT0S"}, "Statistic": "max"}}],
     "events": [{"StimulusPresentation": {"SoftwareName": "PsychoPy"}, "trial_type": {"Description": "d", "Levels": {"1": "a"}},
-                "onset": {"Description": "o"}, "Metadata": META, "TermURL": "https://x.org/d"}],
+                "onset": {"Description": "o"}, "Metadata": META,
+                "stim_file": {"Description": "s", "TermURL": "https://x.org/d"}}],
     "physio": [{"Technical": {"SamplingFrequency": 100, "Columns": ["ecg"]}, "Metadata": META,
-                "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Levels": {"1": "a"}}}}],
+                "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Units": "mV", "Levels": {"1": "a"}}}}],
 }
 NEW_DOCS = {
     "biometrics": {"Technical": OLD_DOCS["biometrics"][0]["Technical"], "Study": {**OLD_DOCS["biometrics"][0]["Study"], "IsAbout": LINK},
-                   "Metadata": META, "weight": {"Description": "w", "Levels": {"1": "a"}, **NEW}},
+                   "Metadata": META, "weight": {"Description": "w", "Units": "kg", "Levels": {"1": "a"}, **NEW}},
     "biosample": {"Technical": OLD_DOCS["biosample"][0]["Technical"], "Study": {"BiosampleName": "c", "IsAbout": LINK}, "Metadata": META,
-                  "cort": {"Description": "c", "Levels": {"1": "a"}, **NEW}},
+                  "cort": {"Description": "c", "Units": "nmol/L", "Levels": {"1": "a"}, **NEW}},
     "environment": {"Technical": OLD_DOCS["environment"][0]["Technical"], "Study": {"EnvironmentName": "w", "IsAbout": LINK}, "Metadata": META,
                     "temp": {**OLD_DOCS["environment"][0]["temp"], **NEW}},
     "events": {"StimulusPresentation": {"SoftwareName": "PsychoPy"}, "Metadata": META,
                "trial_type": {"Description": "d", "Levels": {"1": "a"}, **NEW}, "onset": {"Description": "o", "IsAbout": LINK}},
     "physio": {"Technical": OLD_DOCS["physio"][0]["Technical"], "Metadata": META, "Recording": {"IsAbout": LINK},
-               "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Levels": {"1": "a"}, **NEW}}},
+               "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Units": "mV", "Levels": {"1": "a"}, **NEW}}},
 }
 STAMPED = sorted(mb.load_locations(SHARED)["modalities"])
 

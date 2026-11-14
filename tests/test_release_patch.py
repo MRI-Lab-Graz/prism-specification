@@ -188,3 +188,44 @@ def test_an_odd_but_valid_layout_is_handled(tree):
 
     original, text = _released(tree, PROP_PATCH, rewrite=odd)
     assert json.loads(text) == _expected(original, PROP_PATCH)
+
+
+ARRAY_TEXT = """{
+  "a": {
+    "oneOf": [
+      {
+        "properties": {
+          "X": {}
+        }
+      },
+      {"properties": {"Z": {}}},
+      {
+        "properties": {
+          "W": {}
+        }
+      }
+    ]
+  }
+}
+"""
+
+
+@pytest.mark.parametrize("index, other", [(0, 2), (2, 0)])
+def test_extend_object_steps_into_array_elements(index, other):
+    out = rp._extend_object(ARRAY_TEXT, ["a", "oneOf", index, "properties"], {"Y": {"type": "string"}})
+    expected = json.loads(ARRAY_TEXT)
+    expected["a"]["oneOf"][index]["properties"]["Y"] = {"type": "string"}
+    assert json.loads(out) == expected
+    old, new = ARRAY_TEXT.splitlines(), out.splitlines()
+    name = "X" if index == 0 else "W"
+    assert [line for line in new if line not in old] == [
+        f'          "{name}": {{}},', '          "Y": {', '            "type": "string"', "          }"]
+    assert len(new) == len(old) + 3
+    assert new[0] == old[0] and new[-1] == old[-1]
+    assert '      {"properties": {"Z": {}}},' in new  # the compact element is untouched
+
+
+@pytest.mark.parametrize("index", [3, -1])
+def test_span_array_index_out_of_range_is_value_error(index):
+    with pytest.raises(ValueError):
+        rp._span(ARRAY_TEXT, ["a", "oneOf", index])

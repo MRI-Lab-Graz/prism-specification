@@ -1,4 +1,4 @@
-"""scripts/check_library.py and the two shipped templates (dass, dass21)."""
+"""scripts/check_library.py and the shipped templates (dass, dass21, demo)."""
 
 import copy
 import json
@@ -87,18 +87,18 @@ def released(task):
     return {i for i in ids if i.startswith(f"prism:{task}.") and not i.startswith(f"prism:{task}.score-")}
 
 
-@pytest.mark.parametrize("task", ["dass", "dass21"])
+@pytest.mark.parametrize("task", ["dass", "dass21", "demo"])
 def test_real_template(task):
     path = LIB / f"survey-{task}.json"
     text = path.read_text(encoding="utf-8")
     data = json.loads(text)
-    assert derived(path) == released(task) and len(derived(path)) == {"dass": 42, "dass21": 21}[task]
+    assert derived(path) == released(task) and len(derived(path)) == {"dass": 42, "dass21": 21, "demo": 8}[task]
     schema = json.loads((ROOT / "schemas" / "stable" / "survey.schema.json").read_text(encoding="utf-8"))
     project_only = schema["x-prism"]["projectOnlyRequired"]["Technical"]  # optional in a library template
     errs = [e.message for e in Draft7Validator(schema).iter_errors(data)
             if not any(f"'{f}' is a required property" in e.message for f in project_only)]
     assert errs == []
     assert not re.search(r'"(?!en")[a-z]{2}"\s*:\s*"', text)  # no other language key
-    assert data["Study"]["Source"] == "https://www2.psy.unsw.edu.au/dass/"
+    assert data["Study"]["Source"] == {"demo": "https://github.com/MRI-Lab-Graz/prism-specification"}.get(task, "https://www2.psy.unsw.edu.au/dass/")
     assert data["Study"]["LicenseChecked"] == "2026-11-14"
     assert data["I18n"]["Languages"] == ["en"]

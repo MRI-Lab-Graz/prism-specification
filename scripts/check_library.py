@@ -68,7 +68,7 @@ def template_problems(data: dict) -> list[str]:
     if not isinstance(tech, str):
         out.append("Technical.Language must be set (a string)")
     if not isinstance(i18n, list):
-        out.append("I18n.Languages must be set (a list)")
+        out.append("I18n.Languages must be set and must be a list")
     used = ([tech] if isinstance(tech, str) else []) + (i18n if isinstance(i18n, list) else [])
     out += [f"language {x!r} is not in Study.LicenseLanguages" for x in used if x not in langs]
     _langs(data, "", langs, out)

@@ -1,9 +1,9 @@
 """The meaning fields are out of the six schemas again.
 
-Temporary: delete this file in a later task, once origin/main has moved on past the removal.
+Temporary: delete this file in a later task, once the removal is long released.
+That the block versions are archived as exact copies is guarded by scripts/check_schema_versions.py in CI.
 """
 import json
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -51,15 +51,6 @@ def test_new_version_and_no_meaning_words(m):
     assert data["$id"].endswith(f"/v{new}")
     for word in ("IsAbout", "LevelIsAbout", "ValueMappings"):
         assert word not in text
-
-
-@pytest.mark.parametrize("m", TABLE)
-def test_block_version_is_archived_as_it_was_on_main(m):
-    block = TABLE[m][0]
-    r = subprocess.run(["git", "show", f"origin/main:schemas/stable/{m}.schema.json"], cwd=REPO, capture_output=True)
-    if r.returncode:
-        pytest.skip("origin/main is not available")
-    assert _archive(m, block).read_bytes() == r.stdout
 
 
 def test_meaning_files_are_gone():

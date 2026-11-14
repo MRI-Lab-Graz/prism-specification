@@ -154,8 +154,12 @@ approval (see `CODEOWNERS`).
 ## Instrument templates (`library/`)
 
 A template ships only with the rights holder's statement quoted in `Study.License`, `Study.Source`,
-`Study.LicenseChecked` and `Study.LicenseTerms`, English text only, no `ItemCount`, `Subscales` or
-`Reversed`. CI enforces this with `python scripts/check_library.py`; see `library/NOTICE.md`.
+`Study.LicenseChecked` and `Study.LicenseTerms`, no `ItemCount`, `Subscales` or `Reversed`.
+`Study.LicenseLanguages` lists the languages the quoted licence statement covers (for example `["en"]`);
+every language in the template (`Technical.Language`, `I18n.Languages`, language keys of text) must be in that
+list. The evidence names the languages: adding a language is a visible, reviewed edit of that list, and a
+translation needs the rights holder's licence for that language. CI enforces this with
+`python scripts/check_library.py`; see `library/NOTICE.md`.
 
 ## Adding a mapping
 

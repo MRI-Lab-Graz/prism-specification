@@ -126,3 +126,30 @@ def test_check_rejects_bad_pending_and_passthrough_entries(tmp_path):
     assert any(p.startswith("ghost") and "does not exist" in p for p in problems)
     assert any(p.startswith("anat") and "not a prism modality" in p for p in problems)
     assert any(p.startswith("func") and "not a prism modality" in p for p in problems)
+
+
+def _tree(tmp_path, with_shared=True):
+    shutil.copytree(SCHEMAS, tmp_path / "t" / "stable")
+    if with_shared:
+        shutil.copytree(REPO / "schemas" / "shared", tmp_path / "t" / "shared")
+    return tmp_path / "t" / "stable"
+
+
+def test_shared_folder_defaults_to_the_sibling_of_the_schema_folder(tmp_path):
+    stable = _tree(tmp_path)
+    assert _rule(mod.check(_entities(), stable)) == []
+    # the sibling is really used: an unregistered prism modality is reported from it
+    (stable.parent / "shared" / "meaning-locations.json").write_text('{"modalities": {}, "pending": {}}', encoding="utf-8")
+    assert any("register the new modality" in p for p in mod.check(_entities(), stable))
+
+
+def test_a_missing_shared_folder_is_one_clear_problem(tmp_path):
+    stable = _tree(tmp_path, with_shared=False)
+    problems = _rule(mod.check(_entities(), stable)) or [p for p in mod.check(_entities(), stable) if "shared" in p]
+    assert len(problems) == 1 and "schemas/shared is missing next to" in problems[0]
+
+
+def test_an_explicit_shared_dir_wins(tmp_path):
+    stable = _tree(tmp_path, with_shared=False)
+    shared = _shared(tmp_path, {}, {n: "later" for n in _prism()})
+    assert [p for p in mod.check(_entities(), stable, None, shared) if "shared" in p] == []

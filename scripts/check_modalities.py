@@ -16,7 +16,6 @@ from jsonschema import Draft7Validator
 
 REPO = Path(__file__).resolve().parent.parent
 ENTRY_SCHEMA = Path(__file__).resolve().parent / "entities_entry.schema.json"
-SHARED = REPO / "schemas" / "shared"
 TOP_KEYS = ("$schema", "$id", "version", "title", "description", "type", "properties", "required")
 
 
@@ -56,6 +55,8 @@ def _terms_problems(name: str, entry: dict, schema_dir: Path, terms_dir: Path | 
 
 
 def _meaning_problems(entities: dict, schema_dir: Path, shared_dir: Path) -> list[str]:
+    if not (shared_dir / "meaning-block.json").is_file() or not (shared_dir / "meaning-locations.json").is_file():
+        return [f"schemas/shared is missing next to {schema_dir}: the meaning-block files are part of the specification and must be vendored with the schemas"]
     spec = importlib.util.spec_from_file_location("meaning_block", Path(__file__).resolve().parent / "meaning_block.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -70,7 +71,7 @@ def check(entities: dict, schema_dir: Path, terms_dir: Path | None = None, share
         if entry.get("kind") == "prism" and "suffixes" in entry:
             problems += _schema_problems(name, schema_dir)
         problems += _terms_problems(name, entry, schema_dir, terms_dir)
-    return problems + _meaning_problems(entities, schema_dir, shared_dir or SHARED)
+    return problems + _meaning_problems(entities, Path(schema_dir), Path(shared_dir) if shared_dir else Path(schema_dir).parent / "shared")
 
 
 def main(argv=None) -> int:

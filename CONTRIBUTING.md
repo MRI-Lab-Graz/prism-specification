@@ -142,8 +142,9 @@ are never modified or deleted; a changed stable modality schema carries a bumped
 Run it before opening the pull request:
 `python scripts/check_schema_versions.py origin/main HEAD`.
 
-Within a major version a schema only adds optional things; a file written against an older minor
-version stays valid.
+Within a major version a schema only adds optional things; a file written against an older version
+stays valid, except one that already used a new field name in a different shape (for example `IsAbout`
+as a plain string).
 
 ### Adding the meaning block
 

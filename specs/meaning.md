@@ -7,8 +7,8 @@ The definition lives once in `schemas/shared/meaning-block.json` and is added to
 ## Where it appears
 
 - **File level**: `IsAbout` on the study or recording description (for example `Study` in a sidecar).
-- **Column level**: `IsAbout`, `LevelIsAbout`, `ValueMappings` and `TermURL` on a described column or variable.
-- **Value level**: `LevelIsAbout`, only where the column has `Levels`. A column without `Levels` has no value level.
+- **Column level**: `IsAbout`, `ValueMappings` and `TermURL` on a described column or variable.
+- **Value level**: concept links for single values, only where the column has `Levels`. A column without `Levels` has no value level.
 
 BIDS passthrough data (MRI, EEG and others) does not get the block: BIDS owns those names.
 
@@ -17,7 +17,7 @@ BIDS passthrough data (MRI, EEG and others) does not get the block: BIDS owns th
 | Field | Where | Description |
 | --- | --- | --- |
 | `IsAbout` | file, column | What this is about: one or more concepts, each with how close the match is and which way a higher value points. |
-| `LevelIsAbout` | column | Concept links for single values, keyed by the level code of `Levels`. |
+| `LevelIsAbout` | column with `Levels` | Concept links for single values, keyed by the level code of `Levels`. |
 | `ValueMappings` | column | Named, sourced rules that turn a value into a state a reasoner can use. Several may exist and may disagree; none is the truth. |
 | `TermURL` | column | A string is a URL of a definition (the BIDS reading). An object maps a vocabulary name to the URL of this same thing in that vocabulary. |
 

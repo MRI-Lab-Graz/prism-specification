@@ -227,16 +227,18 @@ def test_release_refuses_an_existing_archive_and_an_odd_version(tree):
 
 
 def test_cli_check_exit_code(tmp_path, capsys):
-    shared = tmp_path / "shared"
-    shared.mkdir()
-    shutil.copy(SHARED / "meaning-block.json", shared)
-    locations = json.loads((SHARED / "meaning-locations.json").read_text(encoding="utf-8"))
-    (shared / "meaning-locations.json").write_text(json.dumps(locations), encoding="utf-8")
-    assert mb.main(["check", "--shared", str(shared)]) == 1  # the real stable schemas are not stamped yet
+    source = tmp_path / "repo"
+    shutil.copytree(REPO / "schemas", source / "schemas")
+    shared = source / "schemas" / "shared"
+    locations = json.loads((shared / "meaning-locations.json").read_text(encoding="utf-8"))
+    block = json.loads((shared / "meaning-block.json").read_text(encoding="utf-8"))
+    block["column"]["Extra"] = {"type": "string"}  # no schema carries it, stamped or not
+    (shared / "meaning-block.json").write_text(json.dumps(block), encoding="utf-8")
+    assert mb.main(["check", "--source", str(source)]) == 1
     assert "biosample" in capsys.readouterr().out
     pending = {n: "later" for n in locations["modalities"]} | locations["pending"]
     (shared / "meaning-locations.json").write_text(json.dumps({"modalities": {}, "pending": pending}), encoding="utf-8")
-    assert mb.main(["check", "--shared", str(shared)]) == 0
+    assert mb.main(["check", "--source", str(source)]) == 0
     assert capsys.readouterr().out == ""
 
 

@@ -98,8 +98,12 @@ def _rule(problems):
 
 
 def test_check_reports_a_modality_without_the_block(tmp_path):
-    real = json.loads((REPO / "schemas" / "shared" / "meaning-locations.json").read_text(encoding="utf-8"))
-    shared = _shared(tmp_path, {"biosample": real["modalities"]["biosample"]}, {n: "later" for n in _prism() if n != "biosample"})
+    # an extra column field in a tmp copy of the block: no stamped schema carries it, stamped or not
+    shared = _shared(tmp_path, {"biosample": json.loads((REPO / "schemas" / "shared" / "meaning-locations.json").read_text(encoding="utf-8"))["modalities"]["biosample"]},
+                     {n: "later" for n in _prism() if n != "biosample"})
+    block = json.loads((shared / "meaning-block.json").read_text(encoding="utf-8"))
+    block["column"]["Extra"] = {"type": "string"}
+    (shared / "meaning-block.json").write_text(json.dumps(block), encoding="utf-8")
     problems = [p for p in mod.check(_entities(), SCHEMAS, None, shared) if p.startswith("biosample")]
     assert any("meaning block" in p and "meaning_block.py release --modality biosample" in p for p in problems)
 

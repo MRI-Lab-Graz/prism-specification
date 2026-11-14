@@ -16,3 +16,17 @@ ITS OWN terms, which are stated in the template and are set by the rights holder
   <contact address to be set by the maintainers>.
 * This folder is excluded from the CC BY 4.0 grant of this repository (see LICENSE). The rest of
   the repository (schemas, terms, specs, recipes, ids, mappings) is CC BY 4.0.
+
+## Open Test Archive
+
+Tests from the Open Test Archive (ZPID, <https://www.testarchiv.eu>) may ship here when the test's own
+licence box names CC BY, CC BY-SA or CC0. Evidence: the archive's terms of use state that the tests "wurden
+uns durch die Rechteinhaber/-innen zur weiteren Nachnutzung zur Verfügung gestellt"
+(<https://www.testarchiv.eu/de/nutzungsbedingungen>), plus the test's page and its DOI, kept in
+`Study.License`, `Study.Source` and `Study.LicenseChecked`. Tests under NC or ND licences are held for a
+decision. The licence of each test is always read from that test's page, never assumed.
+
+* `survey-sbi-d.json`: German Savoring Beliefs Inventory (SBI-d), CC BY-SA 4.0, the first one. Open point:
+  the form (PDF) says 1 = stimme gar nicht zu, 7 = stimme voll zu, while the Testarchiv page text reads
+  (1) stimme voll und ganz zu ... (7) stimme überhaupt nicht zu; the template gives only the two anchors of
+  the form (`Study.Notes`), no scoring and no recipe until the scoring documentation has been read.

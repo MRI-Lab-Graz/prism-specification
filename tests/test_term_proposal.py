@@ -840,9 +840,7 @@ def test_group_is_allowed_in_proposals(tmp_path):
     assert status == "failed" and "Group" in log
 
 
-def test_termurl_is_allowed_in_a_proposal_and_type_checked():
+def test_termurl_is_refused_in_a_proposal():
     url = {"snomed": "https://snomed.info/id/63638003"}
-    terms, problems = _check(_proposal({**PARENT, "TermURL": url}, CHILD))
-    assert problems == [] and len(terms) == 2
-    _, problems = _check(_proposal({**PARENT, "TermURL": "https://snomed.info/id/1"}, CHILD))
+    _, problems = _check(_proposal({**PARENT, "TermURL": url}, CHILD))
     assert any("TermURL" in p for p in problems)

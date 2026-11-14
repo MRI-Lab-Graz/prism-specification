@@ -76,16 +76,12 @@ A term is one JSON file in `terms/<modality>/`, named after the local part of it
   `terms/biosample/cortisol.saliva.json`: `TermID` (`prism:cortisol.saliva`),
   `Level` (`analyte-specimen`), `Parent`, `SpecimenType`, `Units` (UCUM,
   e.g. `nmol/L`), optional `AlternativeUnits`, `MinValue`, `WarnMaxValue`,
-  `LOINC`, `TermURL`, `Equivalents`, `Status`.
+  `LOINC`, `Equivalents`, `Status`.
 * **The `prism:` namespace** is `https://w3id.org/prism-specification/terms/`: `prism:cortisol` is
   `https://w3id.org/prism-specification/terms/biosample/cortisol` (`check_terms.expand`). An ID names one
   concept and is unique across all modalities; the modality is part of the URL, not of the ID.
-* **`TermURL`** (optional, on parent or child term) cross-references the term to other
-  vocabularies: an object `{system: URL}`. Systems: `snomed`
-  (`https://snomed.info/id/<id>`), `loinc` (`https://loinc.org/<code>`), `chebi`
-  (`http://purl.obolibrary.org/obo/CHEBI_<id>`), `ncit`
-  (`http://purl.obolibrary.org/obo/NCIT_C<id>`). The check validates the URL shape per
-  system, not that the code exists, so cite the source in the pull request.
+* **Links to other vocabularies** are not part of a term: they live in `mappings/` (see
+  "Adding a mapping" below). A `TermURL` key in a term file is refused.
 
 Rules (CI enforces them with `python scripts/check_terms.py`):
 
@@ -160,3 +156,17 @@ approval (see `CODEOWNERS`).
 A template ships only with the rights holder's statement quoted in `Study.License`, `Study.Source`,
 `Study.LicenseChecked` and `Study.LicenseTerms`, English text only, no `ItemCount`, `Subscales` or
 `Reversed`. CI enforces this with `python scripts/check_library.py`; see `library/NOTICE.md`.
+
+## Adding a mapping
+
+A mapping says what an ID is the same as or measures in another vocabulary. It never changes the data
+or the ID; the format is in [specs/mappings.md](specs/mappings.md).
+
+1. Put the file at `mappings/<modality>/<family>.json`; the file name is the local part of the ID
+   (`mappings/survey/phq9.json`, `mappings/biosample/cortisol.json`). Keys are full `prism:` IDs of that family.
+2. Look every URL up yourself in the vocabulary and write who made the link (`Source`), the date you looked
+   (`Checked`) and `Status` `unreviewed`. Do not copy codes from memory. Quote no item wording.
+3. A new vocabulary is one entry in `mappings/vocabularies.json` (name, URL pattern, label); say in the pull
+   request where you looked the pattern up.
+4. Run `python scripts/check_mappings.py` and `python scripts/check_terms.py --all`; both must print nothing.
+5. A maintainer who has checked the link sets `Status` to `reviewed`.

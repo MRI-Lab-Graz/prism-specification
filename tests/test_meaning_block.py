@@ -258,3 +258,71 @@ def test_the_meaning_page_documents_every_block_field():
     names = [*BLOCK["column"], *BLOCK["file"], *link, *vm["properties"], *rule["properties"],
              *rule["properties"]["When"]["properties"], "State"]
     assert [n for n in names if f"`{n}`" not in page] == []
+
+
+# ---- backward compatibility of the five real releases -----------------------------------------------------
+
+META = {"SchemaVersion": "1.0.0", "CreationDate": "2026-11-14"}
+LINK = [{"Concept": "prism:anxiety", "Match": "broader", "Higher": "more", "Checked": "2026-11-14", "Status": "reviewed"}]
+NEW = {"IsAbout": LINK, "LevelIsAbout": {"1": LINK}, "TermURL": {"snomed": "http://snomed.info/id/1"}}
+# one tiny valid document per modality; the "meaning" variant adds the new fields (a hand-written fixture
+# because the repository has none for most modalities; environment's real fixture is in test_environment_schema.py)
+OLD_DOCS = {
+    "biometrics": [{"Technical": {"Type": "t", "FileFormat": "tsv", "Equipment": "e"},
+                    "Study": {"BiometricName": "b", "OriginalName": "o", "Description": "d"},
+                    "Metadata": META, "weight": {"Description": "w", "Units": "kg", "Levels": {"1": "a"}, "TermURL": "https://x.org/d"}}],
+    "biosample": [{"Technical": {"SpecimenType": "saliva"}, "Study": {"BiosampleName": "cortisol"}, "Metadata": META,
+                   "cort": {"Description": "c", "Units": "nmol/L", "Levels": {"1": "a"}}}],
+    "environment": [{"Technical": {"Source": "open-meteo"}, "Study": {"EnvironmentName": "weather"}, "Metadata": META,
+                     "temp": {"Term": "prism:air-temperature", "Window": {"Start": "P3D", "End": "PT0S"}, "Statistic": "max"}}],
+    "events": [{"StimulusPresentation": {"SoftwareName": "PsychoPy"}, "trial_type": {"Description": "d", "Levels": {"1": "a"}},
+                "onset": {"Description": "o"}, "Metadata": META, "TermURL": "https://x.org/d"}],
+    "physio": [{"Technical": {"SamplingFrequency": 100, "Columns": ["ecg"]}, "Metadata": META,
+                "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Levels": {"1": "a"}}}}],
+}
+NEW_DOCS = {
+    "biometrics": {"Technical": OLD_DOCS["biometrics"][0]["Technical"], "Study": {**OLD_DOCS["biometrics"][0]["Study"], "IsAbout": LINK},
+                   "Metadata": META, "weight": {"Description": "w", "Levels": {"1": "a"}, **NEW}},
+    "biosample": {"Technical": OLD_DOCS["biosample"][0]["Technical"], "Study": {"BiosampleName": "c", "IsAbout": LINK}, "Metadata": META,
+                  "cort": {"Description": "c", "Levels": {"1": "a"}, **NEW}},
+    "environment": {"Technical": OLD_DOCS["environment"][0]["Technical"], "Study": {"EnvironmentName": "w", "IsAbout": LINK}, "Metadata": META,
+                    "temp": {**OLD_DOCS["environment"][0]["temp"], **NEW}},
+    "events": {"StimulusPresentation": {"SoftwareName": "PsychoPy"}, "Metadata": META,
+               "trial_type": {"Description": "d", "Levels": {"1": "a"}, **NEW}, "onset": {"Description": "o", "IsAbout": LINK}},
+    "physio": {"Technical": OLD_DOCS["physio"][0]["Technical"], "Metadata": META, "Recording": {"IsAbout": LINK},
+               "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Levels": {"1": "a"}, **NEW}}},
+}
+STAMPED = sorted(mb.load_locations(SHARED)["modalities"])
+
+
+def _version(text):
+    return tuple(int(n) for n in text.split("."))
+
+
+def _archived(modality):
+    files = sorted((REPO / "schemas" / "archive" / modality).glob("*.schema.json"),
+                   key=lambda p: _version(p.name[:-len(".schema.json")]))
+    return json.loads(files[-1].read_text(encoding="utf-8")) if files else None
+
+
+@pytest.mark.parametrize("modality", STAMPED)
+def test_every_existing_document_still_validates_after_the_release(modality):
+    new = json.loads((REPO / "schemas/stable" / f"{modality}.schema.json").read_text(encoding="utf-8"))
+    old = _archived(modality)
+    assert old is not None and _version(old["version"]) < _version(new["version"])
+    assert _version(old["version"])[0] == _version(new["version"])[0]  # a minor release, never a major
+    old_v, new_v = Draft7Validator(old), Draft7Validator(new)
+    for doc in OLD_DOCS[modality]:
+        assert old_v.is_valid(doc), [e.message for e in old_v.iter_errors(doc)]
+        assert new_v.is_valid(doc), [e.message for e in new_v.iter_errors(doc)]
+    assert new_v.is_valid(NEW_DOCS[modality]), [e.message for e in new_v.iter_errors(NEW_DOCS[modality])]
+
+
+def test_the_modality_check_passes_with_survey_pending():
+    assert _load("check_modalities").main([]) == 0
+
+
+@pytest.mark.parametrize("modality", STAMPED)
+def test_five_schemas_carry_the_block(modality):
+    text = (REPO / "schemas/stable" / f"{modality}.schema.json").read_text(encoding="utf-8")
+    assert missing(text, modality, BLOCK, mb.load_locations(SHARED)) == []

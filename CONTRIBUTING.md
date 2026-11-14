@@ -154,3 +154,9 @@ Studio adopts a tag with its sync script.
 `schemas/stable/entities.schema.json` (filename grammar) and
 `schemas/stable/dataset_description.schema.json` need a core maintainer's
 approval (see `CODEOWNERS`).
+
+## Instrument templates (`library/`)
+
+A template ships only with the rights holder's statement quoted in `Study.License`, `Study.Source`,
+`Study.LicenseChecked` and `Study.LicenseTerms`, English text only, no `ItemCount`, `Subscales` or
+`Reversed`. CI enforces this with `python scripts/check_library.py`; see `library/NOTICE.md`.

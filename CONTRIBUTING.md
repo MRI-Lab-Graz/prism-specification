@@ -148,7 +148,8 @@ version stays valid.
 ### Adding the meaning block
 
 A new modality is registered in `schemas/shared/meaning-locations.json` and stamped with
-`python scripts/meaning_block.py release --modality <name>`; `python scripts/check_modalities.py`
+`python scripts/meaning_block.py release --modality <name>` (the old schema is archived and the patch
+version is bumped, because the block only adds optional fields); `python scripts/check_modalities.py`
 fails otherwise. The block itself is described in `specs/meaning.md`.
 
 Some changes also need a change in the PRISM validator (prism-studio). Open that

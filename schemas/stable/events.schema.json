@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://prism.org/schemas/events/v1.2.0",
-  "version": "1.2.0",
+  "$id": "https://prism.org/schemas/events/v1.1.1",
+  "version": "1.1.1",
   "title": "Events Metadata",
   "description": "Schema for BIDS events.tsv sidecars. Events files document the timing and nature of stimuli and responses during a task.",
   "type": "object",

@@ -127,7 +127,7 @@ def missing(text: str, modality: str, block: dict, locations: dict) -> list[str]
 
 
 def release(source_root, dest_root, modality: str) -> list[str]:
-    """Release `modality` with the block: archive the old schema, stamp, bump MINOR and $id, regenerate the page."""
+    """Release `modality` with the block: archive the old schema, stamp, bump PATCH and $id, regenerate the page."""
     if not isinstance(modality, str) or not release_patch._MODALITY.fullmatch(modality):
         raise ReleaseError(f"{modality!r} is not a modality name")
     source, dest = Path(source_root), Path(dest_root)
@@ -142,7 +142,7 @@ def release(source_root, dest_root, modality: str) -> list[str]:
     if not match:
         raise ReleaseError(f"{stable_rel}: version {schema.get('version')!r} is not major.minor.patch")
     old = schema["version"]
-    new = f"{match[1]}.{int(match[2]) + 1}.0"
+    new = f"{match[1]}.{match[2]}.{int(match[3]) + 1}"
     if not str(schema.get("$id", "")).endswith(f"/v{old}"):
         raise ReleaseError(f"{stable_rel}: $id {schema.get('$id')!r} does not end with /v{old}")
     archive_rel = f"schemas/archive/{modality}/{old}.schema.json"
@@ -221,7 +221,7 @@ def main(argv=None) -> int:
     check = sub.add_parser("check", help="list modalities lacking the block; exit 1 when there is any")
     check.add_argument("--source", type=Path, default=repo)
     check.add_argument("--shared", type=Path, help="default: <source>/schemas/shared")
-    rel = sub.add_parser("release", help="stamp one modality, archive the old schema, bump the minor version")
+    rel = sub.add_parser("release", help="stamp one modality, archive the old schema, bump the patch version")
     rel.add_argument("--modality", required=True)
     rel.add_argument("--source", type=Path, default=repo)
     rel.add_argument("--dest", type=Path, help="default: the source")

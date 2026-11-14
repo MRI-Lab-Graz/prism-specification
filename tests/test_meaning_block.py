@@ -198,13 +198,13 @@ def test_release_archives_bumps_and_regenerates(tree):
     stable = tree / "schemas/stable/biosample.schema.json"
     old_bytes = stable.read_bytes()
     old = json.loads(old_bytes)["version"]
-    major, minor, _ = map(int, old.split("."))
+    major, minor, patch = map(int, old.split("."))
     written = mb.release(tree, tree, "biosample")
     archive = f"schemas/archive/biosample/{old}.schema.json"
     assert set(written) == {archive, "schemas/stable/biosample.schema.json", "specs/biosample.md"}
     assert (tree / archive).read_bytes() == old_bytes
     new = json.loads(stable.read_text())
-    assert new["version"] == f"{major}.{minor + 1}.0" and new["$id"].endswith(f"/v{major}.{minor + 1}.0")
+    assert new["version"] == f"{major}.{minor}.{patch + 1}" and new["$id"].endswith(f"/v{major}.{minor}.{patch + 1}")  # a patch bump
     assert mb.missing(stable.read_text(), "biosample", BLOCK, mb.load_locations(SHARED)) == []
     gsr = _load("generate_schema_reference")
     assert gsr.sync(write=False, schemas=tree / "schemas/stable", specs=tree / "specs",
@@ -316,7 +316,7 @@ def test_every_existing_document_still_validates_after_the_release(modality):
     new = json.loads((REPO / "schemas/stable" / f"{modality}.schema.json").read_text(encoding="utf-8"))
     old = _archived(modality)
     assert old is not None and _version(old["version"]) < _version(new["version"])
-    assert _version(old["version"])[0] == _version(new["version"])[0]  # a minor release, never a major
+    assert _version(old["version"])[:2] == _version(new["version"])[:2]  # a patch release, never a minor or major
     old_v, new_v = Draft7Validator(old), Draft7Validator(new)
     for doc in OLD_DOCS[modality]:
         assert old_v.is_valid(doc), [e.message for e in old_v.iter_errors(doc)]

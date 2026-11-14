@@ -293,7 +293,7 @@ OLD_DOCS = {
     "physio": [{"Technical": {"SamplingFrequency": 100, "Columns": ["ecg"]}, "Metadata": META,
                 "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Units": "mV", "Levels": {"1": "a"}}}}],
     "survey": [{"Technical": {"StimulusType": "Questionnaire", "FileFormat": "tsv", "SoftwarePlatform": "LimeSurvey",
-                              "Language": "en", "Respondent": "self", "AdministrationMethod": "online"},
+                              "SoftwareVersion": "6.0", "Language": "en", "Respondent": "self", "AdministrationMethod": "online"},
                 "I18n": {"Languages": ["en"]},
                 "Study": {"TaskName": "pss", "OriginalName": "PSS", "Citation": "c", "LicenseID": "CC-BY-4.0",
                           "Category": "Mood, Anxiety & Clinical Screening", "TermURL": "https://x.org/d"},
@@ -314,7 +314,7 @@ NEW_DOCS = {
                "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Units": "mV", "Levels": {"1": "a"}, **NEW}}},
 }
 NEW_DOCS["survey"] = copy.deepcopy(OLD_DOCS["survey"][0])
-NEW_DOCS["survey"]["Study"].update({"IsAbout": LINK, "TermURL": {"snomed": "http://snomed.info/id/1"}})
+NEW_DOCS["survey"]["Study"]["IsAbout"] = LINK
 NEW_DOCS["survey"]["Q01"].update(NEW)
 STAMPED = sorted(mb.load_locations(SHARED)["modalities"])
 

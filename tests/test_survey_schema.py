@@ -105,8 +105,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.1.1"
-    assert SCHEMA["$id"].endswith("/v2.1.1")
+    assert SCHEMA["version"] == "2.1.2"
+    assert SCHEMA["$id"].endswith("/v2.1.2")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 
@@ -205,7 +205,7 @@ def test_a_template_without_recall_period_still_validates():
 
 def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
     stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
-    assert stable["version"] == "2.1.1" and stable["$id"].endswith("/v2.1.1")
+    assert stable["version"] == "2.1.2" and stable["$id"].endswith("/v2.1.2")
     old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
     assert old["version"] == "2.0.0"
 
@@ -240,8 +240,8 @@ def test_a_template_with_a_variant_item_count_still_validates():
     assert valid(doc)
 
 
-def test_survey_schema_2_2_0_with_2_1_0_archived_unchanged():
-    assert SCHEMA["version"] == "2.1.1" and SCHEMA["$id"].endswith("/v2.1.1")
+def test_survey_schema_2_1_2_with_2_1_0_archived_unchanged():
+    assert SCHEMA["version"] == "2.1.2" and SCHEMA["$id"].endswith("/v2.1.2")
     old = json.loads((ROOT / "schemas/archive/survey/2.1.0.schema.json").read_text())
     assert old["version"] == "2.1.0"  # exact-copy check: scripts/check_schema_versions.py in CI
 
@@ -282,8 +282,8 @@ def test_alias_item_is_not_stamped():
     assert "IsAbout" not in json.dumps(alias)
 
 
-def test_study_takes_is_about_and_a_termurl_object():
-    assert valid(with_study(IsAbout=LINK, TermURL={"snomed": "http://snomed.info/id/1"}))
+def test_study_takes_is_about():
+    assert valid(with_study(IsAbout=LINK))
 
 
 BAD = [

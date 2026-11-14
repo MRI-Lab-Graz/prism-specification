@@ -144,34 +144,25 @@ def test_recipes_agree_with_ids():
     assert not unresolved, unresolved
 
 
-def test_recipe_schema_is_the_studio_file():
-    path = ROOT / "schemas" / "stable" / "recipe.survey.schema.json"
+def test_recipe_schema_1_0_0_is_the_studio_file():
+    path = ROOT / "schemas" / "archive" / "recipe.survey" / "1.0.0.schema.json"
     assert hashlib.sha256(path.read_bytes()).hexdigest() == SCHEMA_SHA256
-
-
-# Known disagreement, reported to the maintainers: schema 1.0.0 limits Survey.TaskName to
-# ^[a-zA-Z0-9]*$ (no hyphen) but these shipped recipes (and the released IDs) use hyphenated task names.
-# Pinned exactly: any other error, or a recipe leaving this set, fails the test.
-HYPHEN_TASKNAME = {
-    "agg-a", "bes-alt", "bfi-s", "dmq-r", "grit-s", "loneliness-3", "lot-r", "mhc-sf",
-    "ncs-6", "nmp-q", "o-life", "oci-r", "sbs-10", "sf-mjs", "soc-3", "type-d",
-}
 
 
 def test_shipped_recipes_validate_against_the_schema():
     validator = Draft7Validator(json.loads((ROOT / "schemas/stable/recipe.survey.schema.json").read_text(encoding="utf-8")))
     assert len(_shipped()) == 100
-    failing = set()
     for p in _shipped():
-        recipe = json.loads(p.read_text(encoding="utf-8"))
-        errors = list(validator.iter_errors(recipe))
-        if not errors:
-            continue
-        task = recipe["Survey"]["TaskName"]
-        only_hyphen = all(list(e.absolute_path) == ["Survey", "TaskName"] and e.validator == "pattern" for e in errors)
-        assert only_hyphen and "-" in task, (p.name, errors[0].message)
-        failing.add(task)
-    assert failing == HYPHEN_TASKNAME
+        errors = list(validator.iter_errors(json.loads(p.read_text(encoding="utf-8"))))
+        assert not errors, (p.name, errors[0].message)
+
+
+def test_recipe_schema_is_1_0_1_and_1_0_0_is_archived():
+    stable = json.loads((ROOT / "schemas/stable/recipe.survey.schema.json").read_text(encoding="utf-8"))
+    assert stable["version"] == "1.0.1"
+    assert stable["$id"].endswith("/v1.0.1")
+    archived = ROOT / "schemas/archive/recipe.survey/1.0.0.schema.json"
+    assert hashlib.sha256(archived.read_bytes()).hexdigest() == SCHEMA_SHA256
 
 
 def test_check_schema_versions_governs_recipe_survey():

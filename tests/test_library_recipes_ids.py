@@ -24,6 +24,12 @@ def _en(value):
     return value.get("en") if isinstance(value, dict) else value
 
 
+def _demo_invert_only(recipe: dict) -> bool:
+    """The one exception: the PRISM demo recipe (TaskName "demo") may reverse-code, and do nothing else."""
+    transforms = recipe.get("Transforms")
+    return (recipe.get("Survey") or {}).get("TaskName") == "demo" and isinstance(transforms, dict) and set(transforms) == {"Invert"}
+
+
 def is_boilerplate(recipe: dict) -> bool:
     usage = recipe.get("Usage") or {}
     scoring = _en(usage.get("ScoringGuidelines"))
@@ -34,9 +40,9 @@ def is_boilerplate(recipe: dict) -> bool:
         return False
     if set(usage) - {"ScoringGuidelines", "InterpretationGuidelines"}:
         return False
-    if any(recipe.get(k) for k in ("References", "Transforms", "VersionedScores")) or any(
-        k in recipe for k in ("References", "Transforms", "VersionedScores")
-    ):
+    if any(k in recipe for k in ("References", "VersionedScores")):
+        return False
+    if "Transforms" in recipe and not _demo_invert_only(recipe):
         return False
     for score in recipe.get("Scores") or []:
         if "Note" in score or not isinstance(score.get("Description", ""), str):
@@ -78,17 +84,45 @@ def test_boilerplate_function_on_samples():
     assert not is_boilerplate({"Scores": [{"Note": "n"}]})
 
 
+def test_transforms_exception_is_only_demo_invert():
+    invert = {"Invert": {"Items": ["DEMO06"], "Scale": {"min": 0, "max": 4}}}
+    base = {"Survey": {"TaskName": "demo"}, "Scores": [{"Description": "x"}]}
+    assert is_boilerplate({**base, "Transforms": invert})
+    assert not is_boilerplate({**base, "Survey": {"TaskName": "other"}, "Transforms": invert})
+    assert not is_boilerplate({**base, "Transforms": {**invert, "Derived": []}})
+    assert not is_boilerplate({**base, "Transforms": {}})
+    assert not is_boilerplate({**base, "Survey": {}, "Transforms": invert})
+
+
+def test_demo_recipe_scores_computed():
+    """No scoring code lives in this repo: the recipe is checked structurally and its arithmetic worked by hand."""
+    recipe = json.loads((ROOT / "recipes" / "survey" / "recipe-demo.json").read_text(encoding="utf-8"))
+    assert recipe["Transforms"]["Invert"] == {"Items": ["DEMO06"], "Scale": {"min": 0, "max": 4}}
+    scores = {s["Name"]: s for s in recipe["Scores"]}
+    assert set(scores) == {"Total", "Routine"}
+    assert scores["Total"]["Items"] == [f"DEMO0{i}" for i in range(1, 9)] and scores["Total"]["Method"] == "sum"
+    assert scores["Routine"]["Items"] == [f"DEMO0{i}" for i in range(1, 5)]
+    assert scores["Total"]["Range"] == {"min": 0, "max": 32} and scores["Routine"]["Range"] == {"min": 0, "max": 16}
+    resp = {f"DEMO0{i}": v for i, v in enumerate([1, 2, 3, 4, 0, 1, 2, 3], 1)}
+    lo, hi = recipe["Transforms"]["Invert"]["Scale"]["min"], recipe["Transforms"]["Invert"]["Scale"]["max"]
+    for k in recipe["Transforms"]["Invert"]["Items"]:
+        resp[k] = lo + hi - resp[k]
+    assert sum(resp[k] for k in scores["Total"]["Items"]) == 1 + 2 + 3 + 4 + 0 + 3 + 2 + 3
+    assert sum(resp[k] for k in scores["Routine"]["Items"]) == 10
+
+
 @need_source
 def test_shipped_recipes_are_exactly_the_passing_ones():
     src = _source_recipes()
     passing = {n for n, r in src.items() if is_boilerplate(r)}
     assert len(passing) == 100
     assert set(src) - passing == HELD
-    shipped = {p.name for p in _shipped()}
+    shipped = {p.name for p in _shipped()} - {"recipe-demo.json"}  # the demo is written here, not copied
     assert len(shipped) == 100
     assert shipped == passing == set(src) - HELD
     for p in _shipped():
-        assert p.read_bytes() == (SRC_RECIPES / p.name).read_bytes()
+        if p.name != "recipe-demo.json":
+            assert p.read_bytes() == (SRC_RECIPES / p.name).read_bytes()
     assert not [n for n in HELD if list((ROOT / "recipes").rglob(n))]
 
 
@@ -100,7 +134,7 @@ def test_boilerplate_fails_for_each_held_recipe():
 
 
 def test_shipped_recipes_pass_boilerplate_test():
-    assert len(_shipped()) == 100
+    assert len(_shipped()) == 101
     for p in _shipped():
         assert is_boilerplate(json.loads(p.read_text(encoding="utf-8"))), p.name
 
@@ -117,11 +151,11 @@ def _ids():
 
 def test_ids_list():
     ids = _ids()
-    assert len(ids) == 1478
+    assert len(ids) == 1478 + 1 + 8 + 2
     assert all(ID_RE.match(i) for i in ids)
     assert len(set(ids)) == len(ids)
-    if SRC_IDS.is_file():
-        assert (ROOT / "ids" / "survey-ids.txt").read_bytes() == SRC_IDS.read_bytes()
+    if SRC_IDS.is_file():  # the released list only grew by the demo's lines
+        assert [i for i in ids if i != "prism:demo" and not i.startswith("prism:demo.")] == SRC_IDS.read_text(encoding="utf-8").splitlines()
     readme = (ROOT / "ids" / "README.md").read_text(encoding="utf-8")
     assert "frozen" in readme.lower()
 
@@ -151,7 +185,7 @@ def test_recipe_schema_1_0_0_is_the_studio_file():
 
 def test_shipped_recipes_validate_against_the_schema():
     validator = Draft7Validator(json.loads((ROOT / "schemas/stable/recipe.survey.schema.json").read_text(encoding="utf-8")))
-    assert len(_shipped()) == 100
+    assert len(_shipped()) == 101
     for p in _shipped():
         errors = list(validator.iter_errors(json.loads(p.read_text(encoding="utf-8"))))
         assert not errors, (p.name, errors[0].message)

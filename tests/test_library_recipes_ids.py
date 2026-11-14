@@ -85,7 +85,7 @@ def test_boilerplate_function_on_samples():
 
 
 def test_transforms_exception_is_only_demo_invert():
-    invert = {"Invert": {"Items": ["DEMO05"], "Scale": {"min": 0, "max": 4}}}
+    invert = {"Invert": {"Items": ["DEMO06"], "Scale": {"min": 0, "max": 4}}}
     base = {"Survey": {"TaskName": "demo"}, "Scores": [{"Description": "x"}]}
     assert is_boilerplate({**base, "Transforms": invert})
     assert not is_boilerplate({**base, "Survey": {"TaskName": "other"}, "Transforms": invert})
@@ -97,7 +97,7 @@ def test_transforms_exception_is_only_demo_invert():
 def test_demo_recipe_scores_computed():
     """No scoring code lives in this repo: the recipe is checked structurally and its arithmetic worked by hand."""
     recipe = json.loads((ROOT / "recipes" / "survey" / "recipe-demo.json").read_text(encoding="utf-8"))
-    assert recipe["Transforms"]["Invert"] == {"Items": ["DEMO05"], "Scale": {"min": 0, "max": 4}}
+    assert recipe["Transforms"]["Invert"] == {"Items": ["DEMO06"], "Scale": {"min": 0, "max": 4}}
     scores = {s["Name"]: s for s in recipe["Scores"]}
     assert set(scores) == {"Total", "Routine"}
     assert scores["Total"]["Items"] == [f"DEMO0{i}" for i in range(1, 9)] and scores["Total"]["Method"] == "sum"
@@ -107,7 +107,7 @@ def test_demo_recipe_scores_computed():
     lo, hi = recipe["Transforms"]["Invert"]["Scale"]["min"], recipe["Transforms"]["Invert"]["Scale"]["max"]
     for k in recipe["Transforms"]["Invert"]["Items"]:
         resp[k] = lo + hi - resp[k]
-    assert sum(resp[k] for k in scores["Total"]["Items"]) == 1 + 2 + 3 + 4 + 4 + 1 + 2 + 3
+    assert sum(resp[k] for k in scores["Total"]["Items"]) == 1 + 2 + 3 + 4 + 0 + 3 + 2 + 3
     assert sum(resp[k] for k in scores["Routine"]["Items"]) == 10
 
 
@@ -155,7 +155,7 @@ def test_ids_list():
     assert all(ID_RE.match(i) for i in ids)
     assert len(set(ids)) == len(ids)
     if SRC_IDS.is_file():  # the released list only grew by the demo's lines
-        assert [i for i in ids if not i.startswith("prism:demo")] == SRC_IDS.read_text(encoding="utf-8").splitlines()
+        assert [i for i in ids if i != "prism:demo" and not i.startswith("prism:demo.")] == SRC_IDS.read_text(encoding="utf-8").splitlines()
     readme = (ROOT / "ids" / "README.md").read_text(encoding="utf-8")
     assert "frozen" in readme.lower()
 

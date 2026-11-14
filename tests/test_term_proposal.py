@@ -453,7 +453,7 @@ def test_the_log_always_fits_in_a_github_comment(tmp_path, monkeypatch):
 
 def test_contributing_documents_schema_patches():
     docs = (REPO / "CONTRIBUTING.md").read_text(encoding="utf-8")
-    for needle in ("patches/<modality>.json", "add_enum_values", "add_optional_properties", "minor version", "archive", "in place"):
+    for needle in ("patches/<modality>.json", "add_enum_values", "add_optional_properties", "patch version", "archive", "in place"):
         assert needle in docs, needle
     assert "re-serialized" not in docs
 

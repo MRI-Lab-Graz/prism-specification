@@ -53,8 +53,8 @@ def test_release_archives_bumps_patches_and_regenerates(tree):
     new = _stable(tree)
     assert written == [f"schemas/archive/biosample/{old}.schema.json", "schemas/stable/biosample.schema.json", "specs/biosample.md"]
     assert (tree / written[0]).read_bytes() == original  # an exact copy of the previous stable file
-    major, minor, _patch = map(int, old.split("."))
-    assert new["version"] == f"{major}.{minor + 1}.0" and new["$id"].endswith(f"/v{new['version']}")
+    major, minor, patch = map(int, old.split("."))
+    assert new["version"] == f"{major}.{minor}.{patch + 1}" and new["$id"].endswith(f"/v{new['version']}")
     assert "sweat" in new["properties"]["Technical"]["properties"]["SpecimenType"]["enum"]
     assert "`sweat`" in (tree / "specs" / "biosample.md").read_text(encoding="utf-8")  # the table lists it
 
@@ -137,8 +137,8 @@ def _released(tree, patch=PATCH, rewrite=None):
 
 def _expected(original, patch):
     expected, _notes = sp.apply_patch(original, patch)
-    major, minor, _p = map(int, original["version"].split("."))
-    expected["version"] = f"{major}.{minor + 1}.0"
+    major, minor, patch = map(int, original["version"].split("."))
+    expected["version"] = f"{major}.{minor}.{patch + 1}"
     expected["$id"] = original["$id"][: -len(original["version"])] + expected["version"]
     return expected
 

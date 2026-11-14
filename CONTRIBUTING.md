@@ -58,7 +58,7 @@ in the list, or an extra optional field. A proposal can carry a **patch** for th
 * Values or properties the schema already has are skipped; a patch that adds nothing is refused.
 * A term that uses a specimen added by the patch in the same proposal is checked against the extended list.
 * The bot prepares the schema release for the maintainer: the previous schema is copied unchanged to
-  `schemas/archive/`, the stable schema gets the additions and a bumped minor version (and `$id`), and the
+  `schemas/archive/`, the stable schema gets the additions and a bumped patch version (and `$id`), and the
   field tables of the spec page are regenerated. The stable schema file is edited in place, so its diff
   shows only the new version, the new `$id` and the additions. CI then runs the same version check as for
   any schema change.

@@ -4,7 +4,7 @@ Usage: python scripts/check_library.py [--repo DIR]
 Prints one line per problem (naming the file) and exits 1 when there is any.
 Rules: (a) Study.License quotes the rights holder, (b) Study.Source is an absolute https URL,
 (c) Study.LicenseChecked is YYYY-MM-DD, (d) Study.LicenseTerms is a list of short strings,
-(e) only the languages Study.LicenseLanguages names (the languages the quoted licence covers), (f) no Study.ItemCount, Study.Subscales or item Reversed.
+(e) only languages named in Study.LicenseLanguages, (f) no Study.ItemCount, Study.Subscales or item Reversed.
 """
 
 from __future__ import annotations
@@ -23,17 +23,18 @@ NON_ITEMS = ("Technical", "Metadata", "I18n", "Study", "Normative")
 QUOTE = re.compile(r'["“][^"”]{10,}["”]')
 
 
-def _langs(value, path, allowed, out):
-    """Report language keys of the text fields below value that are not in allowed."""
-    if isinstance(value, dict):
+def _langs(value, path, allowed, out, level_map=False):
+    """Report language keys, in any dict below value whose keys all look like language codes, that are not allowed."""
+    if isinstance(value, list):
+        for i, v in enumerate(value):
+            _langs(v, f"{path}{i}.", allowed, out)
+    elif isinstance(value, dict):
+        if value and not level_map and all(LANG.fullmatch(k) for k in value):
+            out += [f"{path.rstrip('.')}: language {k!r} is not in Study.LicenseLanguages" for k in value if k not in allowed]
         for k, v in value.items():
-            if k in TEXT_FIELDS:
-                # Levels maps a level to a text object; the others are the text object itself
-                for text in (v.values() if k == "Levels" and isinstance(v, dict) else [v]):
-                    if isinstance(text, dict):
-                        out += [f"{path}{k}: language {x!r} is not in Study.LicenseLanguages" for x in text if x not in allowed]
-            else:
-                _langs(v, f"{path}{k}.", allowed, out)
+            if not (path == "" and k in ("Technical", "I18n")):
+                # keys of a Levels map are level codes (a level 'no' is not a language)
+                _langs(v, f"{path}{k}.", allowed, out, level_map=(k == "Levels"))
 
 
 def template_problems(data: dict) -> list[str]:
@@ -63,12 +64,14 @@ def template_problems(data: dict) -> list[str]:
         out.append("Study.LicenseLanguages must be a non-empty list of language codes such as ['en']")
         langs = []
     tech = (data.get("Technical") or {}).get("Language")
-    used = ([tech] if tech is not None else []) + list((data.get("I18n") or {}).get("Languages") or [])
+    i18n = (data.get("I18n") or {}).get("Languages")
+    if not isinstance(tech, str):
+        out.append("Technical.Language must be set (a string)")
+    if not isinstance(i18n, list):
+        out.append("I18n.Languages must be set (a list)")
+    used = ([tech] if isinstance(tech, str) else []) + (i18n if isinstance(i18n, list) else [])
     out += [f"language {x!r} is not in Study.LicenseLanguages" for x in used if x not in langs]
     _langs(data, "", langs, out)
-    for k in ("License", "Citation"):
-        if isinstance(study.get(k), dict):
-            out += [f"Study.{k}: language {x!r} is not in Study.LicenseLanguages" for x in study[k] if x not in langs]
     for key in ("ItemCount", "Subscales"):
         if key in study:
             out.append(f"Study.{key} must not be set")

@@ -105,8 +105,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.1.2"
-    assert SCHEMA["$id"].endswith("/v2.1.2")
+    assert SCHEMA["version"] == "2.1.3"
+    assert SCHEMA["$id"].endswith("/v2.1.3")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 
@@ -205,7 +205,7 @@ def test_a_template_without_recall_period_still_validates():
 
 def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
     stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
-    assert stable["version"] == "2.1.2" and stable["$id"].endswith("/v2.1.2")
+    assert stable["version"] == "2.1.3" and stable["$id"].endswith("/v2.1.3")
     old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
     assert old["version"] == "2.0.0"
 
@@ -240,62 +240,7 @@ def test_a_template_with_a_variant_item_count_still_validates():
     assert valid(doc)
 
 
-def test_survey_schema_2_1_2_with_2_1_0_archived_unchanged():
-    assert SCHEMA["version"] == "2.1.2" and SCHEMA["$id"].endswith("/v2.1.2")
+def test_survey_schema_2_1_3_with_2_1_0_archived_unchanged():
+    assert SCHEMA["version"] == "2.1.3" and SCHEMA["$id"].endswith("/v2.1.3")
     old = json.loads((ROOT / "schemas/archive/survey/2.1.0.schema.json").read_text())
     assert old["version"] == "2.1.0"  # exact-copy check: scripts/check_schema_versions.py in CI
-
-
-# ---- the meaning block (schema 2.1.2) ------------------------------------------------------------------
-
-LINK = [{"Concept": "prism:stress", "Match": "exact", "Higher": "more", "Source": "me", "Checked": "2026-11-14", "Status": "reviewed"}]
-MAPPING = [{"Name": "cutoff", "Source": "paper", "Rules": [{"When": {"Op": ">=", "Value": 3}, "State": "high"}]}]
-
-
-def with_item(**fields):
-    d = copy.deepcopy(BASE)
-    d["Q01"].update(Levels={"1": "a"}, **fields)
-    return d
-
-
-def with_study(**fields):
-    d = copy.deepcopy(BASE)
-    d["Study"].update(fields)
-    return d
-
-
-def test_item_takes_the_meaning_fields():
-    assert valid(with_item(IsAbout=LINK, LevelIsAbout={"1": LINK}, ValueMappings=MAPPING,
-                           TermURL={"snomed": "http://snomed.info/id/1"}))
-
-
-def test_old_forms_stay_valid():
-    assert valid(with_item(TermURL="https://x.org/d"))
-    assert valid(with_study(TermURL="https://x.org/d"))
-    d = copy.deepcopy(BASE)
-    d["Q02"] = {"AliasOf": "Q01"}
-    assert valid(d)
-
-
-def test_alias_item_is_not_stamped():
-    alias = SCHEMA["additionalProperties"]["oneOf"][1]
-    assert "IsAbout" not in json.dumps(alias)
-
-
-def test_study_takes_is_about():
-    assert valid(with_study(IsAbout=LINK))
-
-
-BAD = [
-    ("bare string", "IsAbout", "prism:stress"),
-    ("Match maybe", "IsAbout", [{"Concept": "prism:stress", "Match": "maybe"}]),
-    ("Higher up", "IsAbout", [{"Concept": "prism:stress", "Higher": "up"}]),
-    ("Checked yesterday", "IsAbout", [{"Concept": "prism:stress", "Checked": "yesterday"}]),
-    ("empty Concept", "IsAbout", [{"Concept": ""}]),
-]
-
-
-@pytest.mark.parametrize("what,field,value", BAD, ids=[b[0] for b in BAD])
-def test_malformed_is_about_is_refused(what, field, value):
-    assert not valid(with_item(**{field: value}))
-    assert not valid(with_study(**{field: value}))

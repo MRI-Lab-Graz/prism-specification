@@ -1,0 +1,583 @@
+{
+  "Technical": {
+    "StimulusType": "Questionnaire",
+    "FileFormat": "tsv",
+    "Language": "en"
+  },
+  "Metadata": {
+    "SchemaVersion": "2.1.0",
+    "CreationDate": "2026-02-03",
+    "Creator": "PRISM Studio"
+  },
+  "I18n": {
+    "Languages": [
+      "en"
+    ]
+  },
+  "Study": {
+    "TaskName": "dass",
+    "OriginalName": "Depression Anxiety Stress Scales (DASS)",
+    "ShortName": "DASS",
+    "Category": "Mood, Anxiety & Clinical Screening",
+    "Authors": [],
+    "Year": null,
+    "DOI": "",
+    "Citation": "Official webpage",
+    "License": "\"The DASS questionnaire is in the public domain, and may be downloaded from this website.\" \"The DASS questionnaire forms may be downloaded and copied without restriction.\"",
+    "Source": "https://www2.psy.unsw.edu.au/dass/",
+    "Instructions": "Please read each statement and select the response that best describes you.",
+    "LicenseID": "Other",
+    "LicenseChecked": "2026-11-14",
+    "LicenseTerms": [
+      "The scales may not be modified or sold for profit.",
+      "Administering the DASS on a website or app open to members of the public is not permitted; use with defined groups such as research participants is.",
+      "Please cite the DASS website: www.psy.unsw.edu.au/dass"
+    ]
+  },
+  "DASS01": {
+    "Description": "I found myself getting upset by quite trivial things",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS02": {
+    "Description": "I was aware of dryness of my mouth",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS03": {
+    "Description": "I couldn't seem to experience any positive feeling at all",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS04": {
+    "Description": "I experienced breathing difficulty (eg, excessively rapid breathing, breathlessness in the absence of physical exertion)",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS05": {
+    "Description": "I just couldn't seem to get going",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS06": {
+    "Description": "I tended to over-react to situations",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS07": {
+    "Description": "I had a feeling of shakiness (eg, legs going to give way)",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS08": {
+    "Description": "I found it difficult to relax",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS09": {
+    "Description": "I found myself in situations that made me so anxious I was most relieved when they ended",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS10": {
+    "Description": "I felt that I had nothing to look forward to",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS11": {
+    "Description": "I found myself getting upset rather easily",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS12": {
+    "Description": "I felt that I was using a lot of nervous energy",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS13": {
+    "Description": "I felt sad and depressed",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS14": {
+    "Description": "I found myself getting impatient when I was delayed in any way (eg, lifts, traffic lights, being kept waiting)",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS15": {
+    "Description": "I had a feeling of faintness",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS16": {
+    "Description": "I felt that I had lost interest in just about everything",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS17": {
+    "Description": "I felt I wasn't worth much as a person",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS18": {
+    "Description": "I felt that I was rather touchy",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS19": {
+    "Description": "I perspired noticeably (eg, hands sweaty) in the absence of high temperatures or physical exertion",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS20": {
+    "Description": "I felt scared without any good reason",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS21": {
+    "Description": "I felt that life wasn't worthwhile",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS22": {
+    "Description": "I found it hard to wind down",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS23": {
+    "Description": "I had difficulty in swallowing",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS24": {
+    "Description": "I couldn't seem to get any enjoyment out of the things I did",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS25": {
+    "Description": "I was aware of the action of my heart in the absence of physical exertion (eg, sense of heart rate increase, heart missing a beat)",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS26": {
+    "Description": "I felt down-hearted and blue",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS27": {
+    "Description": "I found that I was very irritable",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS28": {
+    "Description": "I felt I was close to panic",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS29": {
+    "Description": "I found it hard to calm down after something upset me",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS30": {
+    "Description": "I feared that I would be \"thrown\" by some trivial but unfamiliar task",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS31": {
+    "Description": "I was unable to become enthusiastic about anything",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS32": {
+    "Description": "I found it difficult to tolerate interruptions to what I was doing",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS33": {
+    "Description": "I was in a state of nervous tension",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS34": {
+    "Description": "I felt I was pretty worthless",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS35": {
+    "Description": "I was intolerant of anything that kept me from getting on with what I was doing",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS36": {
+    "Description": "I felt terrified",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS37": {
+    "Description": "I could see nothing in the future to be hopeful about",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS38": {
+    "Description": "I felt that life was meaningless",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS39": {
+    "Description": "I found myself getting agitated",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS40": {
+    "Description": "I was worried about situations in which I might panic and make a fool of myself",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS41": {
+    "Description": "I experienced trembling (eg, in the hands)",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  },
+  "DASS42": {
+    "Description": "I found it difficult to work up the initiative to do things",
+    "Levels": {
+      "0": "Never",
+      "1": "Sometimes",
+      "2": "Often",
+      "3": "Almost always"
+    },
+    "DataType": "integer",
+    "MinValue": 0,
+    "MaxValue": 3,
+    "ScaleType": "frequency"
+  }
+}

@@ -224,3 +224,25 @@ def test_release_refuses_an_existing_archive_and_an_odd_version(tree):
     stable.write_text(text.replace(f'"version": "{old}"', '"version": "1.1"'))
     with pytest.raises(ValueError, match="major.minor.patch"):
         mb.release(tree, tree, "biosample")
+
+
+def test_cli_check_exit_code(tmp_path, capsys):
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    shutil.copy(SHARED / "meaning-block.json", shared)
+    locations = json.loads((SHARED / "meaning-locations.json").read_text(encoding="utf-8"))
+    (shared / "meaning-locations.json").write_text(json.dumps(locations), encoding="utf-8")
+    assert mb.main(["check", "--shared", str(shared)]) == 1  # the real stable schemas are not stamped yet
+    assert "biosample" in capsys.readouterr().out
+    pending = {n: "later" for n in locations["modalities"]} | locations["pending"]
+    (shared / "meaning-locations.json").write_text(json.dumps({"modalities": {}, "pending": pending}), encoding="utf-8")
+    assert mb.main(["check", "--shared", str(shared)]) == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_cli_release_writes_into_dest(tree, tmp_path, capsys):
+    dest = tmp_path / "out"
+    assert mb.main(["release", "--modality", "biosample", "--source", str(tree), "--dest", str(dest)]) == 0
+    assert "schemas/stable/biosample.schema.json" in capsys.readouterr().out
+    assert (dest / "schemas" / "stable" / "biosample.schema.json").is_file()
+    assert mb.main(["release", "--modality", "nope", "--source", str(tree), "--dest", str(dest)]) == 1

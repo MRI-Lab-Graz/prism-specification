@@ -7,6 +7,7 @@ Prints one line per problem and exits 1 when there is any.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ from jsonschema import Draft7Validator
 
 REPO = Path(__file__).resolve().parent.parent
 ENTRY_SCHEMA = Path(__file__).resolve().parent / "entities_entry.schema.json"
+SHARED = REPO / "schemas" / "shared"
 TOP_KEYS = ("$schema", "$id", "version", "title", "description", "type", "properties", "required")
 
 
@@ -53,7 +55,14 @@ def _terms_problems(name: str, entry: dict, schema_dir: Path, terms_dir: Path | 
     return problems
 
 
-def check(entities: dict, schema_dir: Path, terms_dir: Path | None = None) -> list[str]:
+def _meaning_problems(entities: dict, schema_dir: Path, shared_dir: Path) -> list[str]:
+    spec = importlib.util.spec_from_file_location("meaning_block", Path(__file__).resolve().parent / "meaning_block.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.modality_problems(entities, schema_dir, shared_dir)
+
+
+def check(entities: dict, schema_dir: Path, terms_dir: Path | None = None, shared_dir: Path | None = None) -> list[str]:
     entry_validator = Draft7Validator(json.loads(ENTRY_SCHEMA.read_text(encoding="utf-8")))
     problems = []
     for name, entry in entities["modalities"].items():
@@ -61,7 +70,7 @@ def check(entities: dict, schema_dir: Path, terms_dir: Path | None = None) -> li
         if entry.get("kind") == "prism" and "suffixes" in entry:
             problems += _schema_problems(name, schema_dir)
         problems += _terms_problems(name, entry, schema_dir, terms_dir)
-    return problems
+    return problems + _meaning_problems(entities, schema_dir, shared_dir or SHARED)
 
 
 def main(argv=None) -> int:

@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import argparse
 import json
+import sys
 from pathlib import Path
 
 
@@ -181,3 +183,63 @@ def release(source_root, dest_root, modality: str) -> list[str]:
         )
         written.append(page_rel)
     return written
+
+
+def modality_problems(entities: dict, schema_dir, shared_dir) -> list[str]:
+    """One line per prism modality whose latest stable schema lacks the block (and is not pending), and per bad registration."""
+    shared = Path(shared_dir)
+    block, locations = load_block(shared), load_locations(shared)
+    kinds = {name: entry.get("kind") for name, entry in entities["modalities"].items()}
+    registered, pending = locations.get("modalities", {}), locations.get("pending", {})
+    problems = []
+    for name in registered:
+        if kinds.get(name) != "prism":
+            problems.append(f"{name}: listed in meaning-locations.json modalities but is not a prism modality (BIDS owns those names)")
+    for name in pending:
+        if name not in kinds:
+            problems.append(f"{name}: listed under pending in meaning-locations.json but the modality does not exist")
+        elif kinds[name] != "prism":
+            problems.append(f"{name}: listed under pending in meaning-locations.json but is not a prism modality")
+    for name, kind in kinds.items():
+        if kind != "prism" or name in pending:
+            continue
+        path = Path(schema_dir) / f"{name}.schema.json"
+        if name not in registered:
+            problems.append(f"{name}: register the new modality in schemas/shared/meaning-locations.json and run meaning_block.py release")
+        elif path.is_file():  # a missing schema file is reported by the schema rule
+            lacking = missing(path.read_text(encoding="utf-8"), name, block, locations)
+            if lacking:
+                problems.append(f"{name}: the latest stable schema lacks the meaning block ({lacking[0]}"
+                                f"{', ...' if len(lacking) > 1 else ''}); run python scripts/meaning_block.py release --modality {name}")
+    return problems
+
+
+def main(argv=None) -> int:
+    repo = Path(__file__).resolve().parent.parent
+    parser = argparse.ArgumentParser(description="The shared meaning block in the modality schemas.")
+    sub = parser.add_subparsers(dest="command", required=True)
+    check = sub.add_parser("check", help="list modalities lacking the block; exit 1 when there is any")
+    check.add_argument("--source", type=Path, default=repo)
+    check.add_argument("--shared", type=Path, help="default: <source>/schemas/shared")
+    rel = sub.add_parser("release", help="stamp one modality, archive the old schema, bump the minor version")
+    rel.add_argument("--modality", required=True)
+    rel.add_argument("--source", type=Path, default=repo)
+    rel.add_argument("--dest", type=Path, help="default: the source")
+    args = parser.parse_args(argv)
+    if args.command == "release":
+        try:
+            written = release(args.source, args.dest or args.source, args.modality)
+        except (ReleaseError, ValueError) as exc:
+            print(exc)
+            return 1
+        print("\n".join(written))
+        return 0
+    entities = json.loads((args.source / "schemas" / "stable" / "entities.schema.json").read_text(encoding="utf-8"))
+    problems = modality_problems(entities, args.source / "schemas" / "stable", args.shared or args.source / "schemas" / "shared")
+    for problem in problems:
+        print(problem)
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

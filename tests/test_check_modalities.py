@@ -79,3 +79,46 @@ def test_check_modalities_terms_option(tmp_path, capsys):
     assert mod.main(["--terms", str(tmp_path / "terms")]) == 1
     assert "environment" in capsys.readouterr().out
     assert mod.main([]) == 0
+
+
+def _shared(tmp_path, modalities, pending):
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    shutil.copy(REPO / "schemas" / "shared" / "meaning-block.json", shared)
+    (shared / "meaning-locations.json").write_text(json.dumps({"modalities": modalities, "pending": pending}), encoding="utf-8")
+    return shared
+
+
+def _prism():
+    return [n for n, e in _entities()["modalities"].items() if e["kind"] == "prism"]
+
+
+def _rule(problems):
+    return [p for p in problems if "meaning" in p]
+
+
+def test_check_reports_a_modality_without_the_block(tmp_path):
+    real = json.loads((REPO / "schemas" / "shared" / "meaning-locations.json").read_text(encoding="utf-8"))
+    shared = _shared(tmp_path, {"biosample": real["modalities"]["biosample"]}, {n: "later" for n in _prism() if n != "biosample"})
+    problems = [p for p in mod.check(_entities(), SCHEMAS, None, shared) if p.startswith("biosample")]
+    assert any("meaning block" in p and "meaning_block.py release --modality biosample" in p for p in problems)
+
+
+def test_check_accepts_a_pending_modality(tmp_path):
+    shared = _shared(tmp_path, {}, {n: "later" for n in _prism()})
+    assert _rule(mod.check(_entities(), SCHEMAS, None, shared)) == []
+
+
+def test_check_rejects_an_unregistered_new_modality(tmp_path):
+    shared = _shared(tmp_path, {}, {n: "later" for n in _prism() if n != "events"})
+    problems = mod.check(_entities(), SCHEMAS, None, shared)
+    assert any(p.startswith("events") and "register the new modality in schemas/shared/meaning-locations.json" in p for p in problems)
+
+
+def test_check_rejects_bad_pending_and_passthrough_entries(tmp_path):
+    pending = {n: "later" for n in _prism()} | {"ghost": "x", "anat": "x"}
+    shared = _shared(tmp_path, {"func": {"column": [], "file": []}}, pending)
+    problems = mod.check(_entities(), SCHEMAS, None, shared)
+    assert any(p.startswith("ghost") and "does not exist" in p for p in problems)
+    assert any(p.startswith("anat") and "not a prism modality" in p for p in problems)
+    assert any(p.startswith("func") and "not a prism modality" in p for p in problems)

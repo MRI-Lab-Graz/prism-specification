@@ -105,8 +105,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.2.0"
-    assert SCHEMA["$id"].endswith("/v2.2.0")
+    assert SCHEMA["version"] == "2.1.1"
+    assert SCHEMA["$id"].endswith("/v2.1.1")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 
@@ -205,7 +205,7 @@ def test_a_template_without_recall_period_still_validates():
 
 def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
     stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
-    assert stable["version"] == "2.2.0" and stable["$id"].endswith("/v2.2.0")
+    assert stable["version"] == "2.1.1" and stable["$id"].endswith("/v2.1.1")
     old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
     assert old["version"] == "2.0.0"
 
@@ -241,6 +241,6 @@ def test_a_template_with_a_variant_item_count_still_validates():
 
 
 def test_survey_schema_2_2_0_with_2_1_0_archived_unchanged():
-    assert SCHEMA["version"] == "2.2.0" and SCHEMA["$id"].endswith("/v2.2.0")
+    assert SCHEMA["version"] == "2.1.1" and SCHEMA["$id"].endswith("/v2.1.1")
     old = json.loads((ROOT / "schemas/archive/survey/2.1.0.schema.json").read_text())
     assert old["version"] == "2.1.0"  # exact-copy check: scripts/check_schema_versions.py in CI

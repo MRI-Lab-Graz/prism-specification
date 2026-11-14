@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://prism.org/schemas/survey/v2.2.0",
-  "version": "2.2.0",
+  "$id": "https://prism.org/schemas/survey/v2.1.1",
+  "version": "2.1.1",
   "x-prism": {
     "projectOnlyRequired": {
       "Technical": ["Respondent", "AdministrationMethod", "SoftwarePlatform"]

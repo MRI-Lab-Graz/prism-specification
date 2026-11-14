@@ -188,3 +188,62 @@ def test_an_odd_but_valid_layout_is_handled(tree):
 
     original, text = _released(tree, PROP_PATCH, rewrite=odd)
     assert json.loads(text) == _expected(original, PROP_PATCH)
+
+
+ARRAY_TEXT = """{
+  "a": {
+    "oneOf": [
+      {
+        "properties": {
+          "X": {}
+        }
+      },
+      {"properties": {"Z": {}}},
+      {
+        "properties": {
+          "W": {}
+        }
+      }
+    ]
+  }
+}
+"""
+
+
+@pytest.mark.parametrize("index, other", [(0, 2), (2, 0)])
+def test_extend_object_steps_into_array_elements(index, other):
+    out = rp._extend_object(ARRAY_TEXT, ["a", "oneOf", index, "properties"], {"Y": {"type": "string"}})
+    expected = json.loads(ARRAY_TEXT)
+    expected["a"]["oneOf"][index]["properties"]["Y"] = {"type": "string"}
+    assert json.loads(out) == expected
+    old, new = ARRAY_TEXT.splitlines(), out.splitlines()
+    name = "X" if index == 0 else "W"
+    assert [line for line in new if line not in old] == [
+        f'          "{name}": {{}},', '          "Y": {', '            "type": "string"', "          }"]
+    assert len(new) == len(old) + 3
+    assert new[0] == old[0] and new[-1] == old[-1]
+    assert '      {"properties": {"Z": {}}},' in new  # the compact element is untouched
+
+
+@pytest.mark.parametrize("index", [3, -1])
+def test_span_array_index_out_of_range_is_value_error(index):
+    with pytest.raises(ValueError):
+        rp._span(ARRAY_TEXT, ["a", "oneOf", index])
+
+
+def test_a_bool_key_is_not_an_array_index():
+    with pytest.raises(ValueError):
+        rp._span('{"a": [1, 2]}', ["a", True])  # True == 1 must not select element 1
+
+
+def test_element_of_an_empty_array_is_a_value_error():
+    with pytest.raises(ValueError):
+        rp._element("[]", 0, 0)
+
+
+def test_element_skips_commas_brackets_and_quotes_inside_strings():
+    text = '["a,b", "c]d", "e\\"f,", {"k": "]"}, 4]'
+    spans = [rp._element(text, 0, n) for n in range(5)]
+    assert [json.loads(text[s:e]) for s, e in spans] == ["a,b", "c]d", 'e"f,', {"k": "]"}, 4]
+    with pytest.raises(ValueError):
+        rp._element(text, 0, 5)

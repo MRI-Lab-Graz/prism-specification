@@ -126,7 +126,8 @@ If PRISM has no kind of data (modality) for your data yet, open the issue form
 A bot checks that the description and sample are there and the agreements are ticked. Then a
 maintainer builds the schema, the file-name entry (`entities`) and the specification page in a
 normal pull request. PRISM cannot validate this kind of data locally until that pull request is
-merged and part of a PRISM release.
+merged and part of a PRISM release. The maintainer also stamps the meaning block (see
+[Adding the meaning block](#adding-the-meaning-block)) when building the schema.
 
 ## Changing a schema
 
@@ -140,6 +141,17 @@ are never modified or deleted; a changed stable modality schema carries a bumped
 `version`; a bumped version needs the previous version archived as an exact copy.
 Run it before opening the pull request:
 `python scripts/check_schema_versions.py origin/main HEAD`.
+
+Within a major version a schema only adds optional things; a file written against an older version
+stays valid, except one that already used a new field name in a different shape (for example `IsAbout`
+as a plain string).
+
+### Adding the meaning block
+
+A new modality is registered in `schemas/shared/meaning-locations.json` and stamped with
+`python scripts/meaning_block.py release --modality <name>` (the old schema is archived and the patch
+version is bumped, because the block only adds optional fields); `python scripts/check_modalities.py`
+fails otherwise. The block itself is described in `specs/meaning.md`.
 
 Some changes also need a change in the PRISM validator (prism-studio). Open that
 pull request there and mention it here; schema releases are tagged `vX.Y.Z` and

@@ -27,6 +27,8 @@ jobs:
         run: python scripts/check_modalities.py
       - name: Instrument templates
         run: python scripts/check_library.py
+      - name: Mappings
+        run: python scripts/check_mappings.py
 
   schema-versions:
     name: Modality schema versions

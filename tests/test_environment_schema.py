@@ -39,8 +39,8 @@ def test_old_privacy_block_not_required():
 
 
 def test_version_and_id():
-    assert SCHEMA["version"] == "2.1.1"  # 2.1.1: the meaning block
-    assert SCHEMA["$id"].endswith("/v2.1.1")
+    assert SCHEMA["version"] == "2.1.2"  # 2.1.2: the meaning fields removed again
+    assert SCHEMA["$id"].endswith("/v2.1.2")
 
 
 def test_environment_schema_2_1_0():

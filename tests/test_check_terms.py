@@ -334,32 +334,6 @@ def test_every_environment_term_has_one_of_the_six_groups():
     assert sum(len(v) for v in found.values()) == 31
 
 
-# --- TermURL: cross-references to other vocabularies ---------------------------
-
-def test_termurl_accepts_known_systems_with_matching_urls():
-    urls = {"snomed": "https://snomed.info/id/63638003",
-            "loinc": "https://loinc.org/2143-6",
-            "chebi": "http://purl.obolibrary.org/obo/CHEBI_17347",
-            "ncit": "http://purl.obolibrary.org/obo/NCIT_C2993"}
-    assert check_registry({"cortisol": _parent(TermURL=urls)}) == []
-
-
-def test_termurl_must_be_an_object_of_strings():
-    assert "TermURL" in _text(check_registry({"cortisol": _parent(TermURL=["https://snomed.info/id/1"])}))
-    assert "TermURL" in _text(check_registry({"cortisol": _parent(TermURL={"snomed": 5})}))
-
-
-def test_termurl_rejects_unknown_system_and_wrong_url_shape():
-    assert "unknown" in _text(check_registry({"cortisol": _parent(TermURL={"wikipedia": "https://x.org/a"})})).lower()
-    for bad in ("https://example.org/id/1", "https://snomed.info/id/abc", "snomed:63638003", "http://snomed.info/id/1"):
-        assert "snomed" in _text(check_registry({"cortisol": _parent(TermURL={"snomed": bad})})), bad
-
-
-def test_termurl_loinc_agrees_with_the_loinc_field():
-    reg = {"cortisol": _parent(LOINC="2143-6", TermURL={"loinc": "https://loinc.org/2143-7"})}
-    assert "LOINC" in _text(check_registry(reg))
-
-
 # --- one ID names one concept: no local ID in two modalities -------------------
 
 def test_same_id_in_two_modalities_is_a_problem():

@@ -1,7 +1,9 @@
 """scripts/meaning_block.py: the shared meaning block, added to a modality schema in place as text."""
 
+import copy
 import importlib.util
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -101,7 +103,9 @@ def test_stamp_is_idempotent_and_missing_is_empty_afterwards():
 def test_missing_names_each_property_stamp_would_add():
     lines = missing(SYNTH, "demo", BLOCK, LOCATIONS)
     assert len(lines) == 4 + 3 + 1  # column with Levels, column without, file
-    assert any("TermURL" in line and "additionalProperties" in line for line in lines)
+    assert "demo: the column definition at additionalProperties lacks TermURL" not in lines  # TermURL exists: it is replaced
+    assert "demo: the column definition at additionalProperties has the old TermURL" in lines
+    assert "demo: the file definition at properties/Study lacks IsAbout" in lines
 
 
 SYNTH_WITH_OWN_ISABOUT = SYNTH.replace('"Name": {"type": "string"}', '"Name": {"type": "string"},\n        "IsAbout": {"type": "string"}')
@@ -210,7 +214,7 @@ def test_release_archives_bumps_and_regenerates(tree):
     assert gsr.sync(write=False, schemas=tree / "schemas/stable", specs=tree / "specs",
                     pages={"biosample": "biosample.md"}) == []
     assert "IsAbout" in (tree / "specs/biosample.md").read_text()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="already carries"):
         mb.release(tree, tree, "biosample")  # nothing missing any more
     assert (tree / archive).read_bytes() == old_bytes
 
@@ -260,9 +264,11 @@ def test_the_meaning_page_documents_every_block_field():
     link = BLOCK["link"]["items"]["properties"]
     vm = BLOCK["column"]["ValueMappings"]["items"]
     rule = vm["properties"]["Rules"]["items"]
-    names = [*BLOCK["column"], *BLOCK["file"], *link, *vm["properties"], *rule["properties"],
-             *rule["properties"]["When"]["properties"], "State"]
-    assert [n for n in names if f"`{n}`" not in page] == []
+    rows = [line for line in page.splitlines() if line.startswith("| `")]
+    tabled = [*BLOCK["column"], *BLOCK["file"], *link]  # fields with a row in a table
+    assert [n for n in tabled if not any(row.startswith(f"| `{n}` |") for row in rows)] == []
+    prose = [*vm["properties"], *rule["properties"], *rule["properties"]["When"]["properties"], "State"]
+    assert [n for n in prose if f"`{n}`" not in page] == []
 
 
 # ---- backward compatibility of the five real releases -----------------------------------------------------
@@ -332,3 +338,83 @@ def test_the_modality_check_passes_with_survey_pending():
 def test_five_schemas_carry_the_block(modality):
     text = (REPO / "schemas/stable" / f"{modality}.schema.json").read_text(encoding="utf-8")
     assert missing(text, modality, BLOCK, mb.load_locations(SHARED)) == []
+
+
+def test_release_to_an_unwritable_dest_is_one_message_and_writes_nothing(tree, tmp_path, capsys):
+    if os.geteuid() == 0:
+        pytest.skip("root can write anywhere")
+    dest = tmp_path / "ro"
+    dest.mkdir()
+    dest.chmod(0o500)
+    try:
+        assert mb.main(["release", "--modality", "biosample", "--source", str(tree), "--dest", str(dest)]) == 1
+    finally:
+        dest.chmod(0o700)
+    out = capsys.readouterr().out.strip()
+    assert out and "\n" not in out and "Traceback" not in out
+    assert list(dest.iterdir()) == []
+
+
+def test_a_failure_after_the_archive_step_leaves_no_half_release(tree, tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("root can write anywhere")
+    dest = tmp_path / "out"
+    (dest / "schemas/stable").mkdir(parents=True)
+    (dest / "schemas/stable").chmod(0o500)  # the archive folder can be made, the stable folder cannot be written
+    try:
+        with pytest.raises(OSError):
+            mb.release(tree, dest, "biosample")
+    finally:
+        (dest / "schemas/stable").chmod(0o700)
+    assert [p for p in dest.rglob("*") if p.is_file()] == []  # no archive, no stable file, no temp files
+
+
+def test_a_modality_listed_in_both_modalities_and_pending_is_a_problem(tmp_path):
+    locations = mb.load_locations(SHARED)
+    both = {"modalities": locations["modalities"], "pending": {"biosample": "later"}}
+    entities = json.loads((REPO / "schemas/stable/entities.schema.json").read_text(encoding="utf-8"))
+    problems = mb.modality_problems(entities, REPO / "schemas/stable", _shared_with(tmp_path, both))
+    assert any(p.startswith("biosample") and "listed twice" in p for p in problems)
+
+
+def _shared_with(folder, locations):
+    shutil.copy(SHARED / "meaning-block.json", folder)
+    (folder / "meaning-locations.json").write_text(json.dumps(locations), encoding="utf-8")
+    return folder
+
+
+def test_cli_check_on_a_source_tree(tree, capsys):
+    assert mb.main(["check", "--source", str(tree)]) == 1  # the tree holds the unstamped biosample
+    out = capsys.readouterr().out
+    assert out.startswith("biosample: the latest stable schema lacks the meaning block (the column definition at additionalProperties lacks IsAbout")
+    assert "release --modality biosample" in out and out.count("\n") == 1
+    mb.release(tree, tree, "biosample")
+    assert mb.main(["check", "--source", str(tree)]) == 0
+
+
+NEGATIVE = [
+    ("IsAbout as a bare string", "IsAbout", "prism:anxiety"),
+    ("Match maybe", "IsAbout", [{"Concept": "prism:anxiety", "Match": "maybe"}]),
+    ("Higher up", "IsAbout", [{"Concept": "prism:anxiety", "Higher": "up"}]),
+    ("Checked yesterday", "IsAbout", [{"Concept": "prism:anxiety", "Checked": "yesterday"}]),
+    ("empty Concept", "IsAbout", [{"Concept": ""}]),
+    ("unknown Op", "ValueMappings", [{"Name": "m", "Rules": [{"When": {"Op": "~=", "Value": 1}, "State": "high"}]}]),
+]
+
+
+def _column_of(modality, doc):
+    """The column definition of the NEW_DOCS document that carries the new fields (a copy, to be corrupted)."""
+    doc = copy.deepcopy(doc)
+    if modality == "physio":
+        return doc, doc["Channels"]["ecg"]
+    return doc, doc[{"biometrics": "weight", "biosample": "cort", "environment": "temp", "events": "trial_type"}[modality]]
+
+
+@pytest.mark.parametrize("what, field, value", NEGATIVE, ids=[n[0] for n in NEGATIVE])
+@pytest.mark.parametrize("modality", STAMPED)
+def test_malformed_meaning_fields_are_refused(modality, what, field, value):
+    new = Draft7Validator(json.loads((REPO / "schemas/stable" / f"{modality}.schema.json").read_text(encoding="utf-8")))
+    doc, column = _column_of(modality, NEW_DOCS[modality])
+    assert new.is_valid(doc)
+    column[field] = value
+    assert not new.is_valid(doc), what

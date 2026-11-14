@@ -1,5 +1,4 @@
 {
-  "version": "1.0.0",
   "link": {
     "type": "array",
     "minItems": 1,

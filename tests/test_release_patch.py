@@ -229,3 +229,21 @@ def test_extend_object_steps_into_array_elements(index, other):
 def test_span_array_index_out_of_range_is_value_error(index):
     with pytest.raises(ValueError):
         rp._span(ARRAY_TEXT, ["a", "oneOf", index])
+
+
+def test_a_bool_key_is_not_an_array_index():
+    with pytest.raises(ValueError):
+        rp._span('{"a": [1, 2]}', ["a", True])  # True == 1 must not select element 1
+
+
+def test_element_of_an_empty_array_is_a_value_error():
+    with pytest.raises(ValueError):
+        rp._element("[]", 0, 0)
+
+
+def test_element_skips_commas_brackets_and_quotes_inside_strings():
+    text = '["a,b", "c]d", "e\\"f,", {"k": "]"}, 4]'
+    spans = [rp._element(text, 0, n) for n in range(5)]
+    assert [json.loads(text[s:e]) for s, e in spans] == ["a,b", "c]d", 'e"f,', {"k": "]"}, 4]
+    with pytest.raises(ValueError):
+        rp._element(text, 0, 5)

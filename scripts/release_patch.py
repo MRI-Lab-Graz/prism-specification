@@ -100,13 +100,12 @@ def _element(text: str, start: int, index: int) -> tuple[int, int]:
         i = _skip(text, end)
         if text[i] == ",":
             i += 1
-    raise AssertionError  # unreachable
 
 
 def _span(text: str, keys: list[str | int]) -> tuple[int, int]:
     start, end = _skip(text, 0), len(text)
     for key in keys:
-        start, end = _element(text, start, key) if isinstance(key, int) else _member(text, start, key)
+        start, end = _element(text, start, key) if type(key) is int else _member(text, start, key)
     return start, end
 
 

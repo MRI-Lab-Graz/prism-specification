@@ -145,8 +145,8 @@ def test_shared_folder_defaults_to_the_sibling_of_the_schema_folder(tmp_path):
 
 def test_a_missing_shared_folder_is_one_clear_problem(tmp_path):
     stable = _tree(tmp_path, with_shared=False)
-    problems = _rule(mod.check(_entities(), stable)) or [p for p in mod.check(_entities(), stable) if "shared" in p]
-    assert len(problems) == 1 and "schemas/shared is missing next to" in problems[0]
+    problems = _rule(mod.check(_entities(), stable))
+    assert len(problems) == 1 and str(stable.parent / "shared") in problems[0] and "vendored with the schemas" in problems[0]
 
 
 def test_an_explicit_shared_dir_wins(tmp_path):

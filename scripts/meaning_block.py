@@ -9,10 +9,11 @@ Stdlib only.
 
 from __future__ import annotations
 
+import argparse
 import copy
 import importlib.util
-import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -49,7 +50,7 @@ def fields(block: dict) -> dict:
 
 
 def _plan(schema: dict, modality: str, block: dict, locations: dict):
-    """([(path, name, definition, replace)], problems): what stamp adds or replaces, and why it cannot."""
+    """([(kind, path, name, definition, replace)], problems): what stamp adds or replaces, and why it cannot."""
     where = locations.get("modalities", {}).get(modality)
     if where is None:
         reason = locations.get("pending", {}).get(modality)
@@ -71,12 +72,12 @@ def _plan(schema: dict, modality: str, block: dict, locations: dict):
                 if name == "LevelIsAbout" and "Levels" not in props:
                     continue
                 if name not in props:
-                    edits.append((path, name, definition, False))
+                    edits.append((kind, path, name, definition, False))
                 elif props[name] == definition:
                     continue
                 elif (name == "TermURL" and isinstance(props[name], dict) and props[name].get("type") == "string"
                       and set(props[name]) <= _TERMURL_LOOSE_KEYS):
-                    edits.append((path, name, definition, True))
+                    edits.append((kind, path, name, definition, True))
                 else:
                     problems.append(f"{modality} {path}: {name} already has a different definition")
     return edits, problems
@@ -100,7 +101,7 @@ def stamp(text: str, modality: str, block: dict, locations: dict) -> tuple[str, 
         return text, problems
     expected, new = copy.deepcopy(schema), text
     try:
-        for path, name, definition, replace in edits:
+        for _, path, name, definition, replace in edits:
             target = expected
             for key in path:
                 target = target[key]
@@ -108,7 +109,7 @@ def stamp(text: str, modality: str, block: dict, locations: dict) -> tuple[str, 
             if replace:
                 new = _replace_in_style(new, [*path, "properties", name], definition)
         adds: dict = {}
-        for path, name, definition, replace in edits:
+        for _, path, name, definition, replace in edits:
             if not replace:
                 adds.setdefault(tuple(path), {})[name] = definition
         for path, properties in adds.items():
@@ -123,7 +124,24 @@ def stamp(text: str, modality: str, block: dict, locations: dict) -> tuple[str, 
 def missing(text: str, modality: str, block: dict, locations: dict) -> list[str]:
     """One line per block property stamp would still add or replace (and per problem); empty: carries the block."""
     edits, problems = _plan(json.loads(text), modality, block, locations)
-    return [f"{modality} {path}: {name}" + (" (replace)" if replace else "") for path, name, _, replace in edits] + problems
+    return [f"{modality}: the {kind} definition at {'/'.join(map(str, path))} " + (f"has the old {name}" if replace else f"lacks {name}")
+            for kind, path, name, _, replace in edits] + problems
+
+
+def _write_together(files: dict) -> None:
+    """Write every file to a temp name beside its target, then move them all into place: a failure writes nothing."""
+    temps = []
+    try:
+        for target, data in files.items():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temp = target.with_name(target.name + ".tmp")
+            temps.append(temp)
+            temp.write_bytes(data)
+        for temp in temps:
+            os.replace(temp, temp.with_name(temp.name[: -len(".tmp")]))
+    finally:
+        for temp in temps:
+            temp.unlink(missing_ok=True)
 
 
 def release(source_root, dest_root, modality: str) -> list[str]:
@@ -168,10 +186,7 @@ def release(source_root, dest_root, modality: str) -> list[str]:
         raise ReleaseError(f"{stable_rel}: unusual layout, the version cannot be edited in place")
 
     written = [archive_rel, stable_rel]
-    (dest / archive_rel).parent.mkdir(parents=True, exist_ok=True)
-    (dest / archive_rel).write_bytes(original)
-    (dest / stable_rel).parent.mkdir(parents=True, exist_ok=True)
-    (dest / stable_rel).write_text(edited, encoding="utf-8", newline="")
+    _write_together({dest / archive_rel: original, dest / stable_rel: edited.encode("utf-8")})
 
     page_rel = f"specs/{modality}.md"
     if (source / page_rel).is_file():
@@ -196,7 +211,9 @@ def modality_problems(entities: dict, schema_dir, shared_dir) -> list[str]:
         if kinds.get(name) != "prism":
             problems.append(f"{name}: listed in meaning-locations.json modalities but is not a prism modality (BIDS owns those names)")
     for name in pending:
-        if name not in kinds:
+        if name in registered:
+            problems.append(f"{name}: listed twice in meaning-locations.json (modalities and pending)")
+        elif name not in kinds:
             problems.append(f"{name}: listed under pending in meaning-locations.json but the modality does not exist")
         elif kinds[name] != "prism":
             problems.append(f"{name}: listed under pending in meaning-locations.json but is not a prism modality")
@@ -209,8 +226,10 @@ def modality_problems(entities: dict, schema_dir, shared_dir) -> list[str]:
         elif path.is_file():  # a missing schema file is reported by the schema rule
             lacking = missing(path.read_text(encoding="utf-8"), name, block, locations)
             if lacking:
-                problems.append(f"{name}: the latest stable schema lacks the meaning block ({lacking[0]}"
-                                f"{', ...' if len(lacking) > 1 else ''}); run python scripts/meaning_block.py release --modality {name}")
+                first = lacking[0].split(": ", 1)[-1]
+                more = f" and {len(lacking) - 1} more" if len(lacking) > 1 else ""
+                problems.append(f"{name}: the latest stable schema lacks the meaning block ({first}{more}); "
+                                f"run python scripts/meaning_block.py release --modality {name}")
     return problems
 
 
@@ -229,7 +248,7 @@ def main(argv=None) -> int:
     if args.command == "release":
         try:
             written = release(args.source, args.dest or args.source, args.modality)
-        except (ReleaseError, ValueError) as exc:
+        except (ReleaseError, ValueError, OSError) as exc:
             print(exc)
             return 1
         print("\n".join(written))

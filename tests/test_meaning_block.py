@@ -248,3 +248,13 @@ def test_cli_release_writes_into_dest(tree, tmp_path, capsys):
     assert "schemas/stable/biosample.schema.json" in capsys.readouterr().out
     assert (dest / "schemas" / "stable" / "biosample.schema.json").is_file()
     assert mb.main(["release", "--modality", "nope", "--source", str(tree), "--dest", str(dest)]) == 1
+
+
+def test_the_meaning_page_documents_every_block_field():
+    page = (REPO / "specs" / "meaning.md").read_text(encoding="utf-8")
+    link = BLOCK["link"]["items"]["properties"]
+    vm = BLOCK["column"]["ValueMappings"]["items"]
+    rule = vm["properties"]["Rules"]["items"]
+    names = [*BLOCK["column"], *BLOCK["file"], *link, *vm["properties"], *rule["properties"],
+             *rule["properties"]["When"]["properties"], "State"]
+    assert [n for n in names if f"`{n}`" not in page] == []

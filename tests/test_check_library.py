@@ -180,3 +180,32 @@ def test_real_template(task):
     assert data["Study"]["Source"] == {"demo": "https://github.com/MRI-Lab-Graz/prism-specification"}.get(task, "https://www2.psy.unsw.edu.au/dass/")
     assert data["Study"]["LicenseChecked"] == "2026-11-14"
     assert data["I18n"]["Languages"] == ["en"]
+
+
+SBID = LIB / "survey-sbi-d.json"
+SOURCE_SBID = Path("/Volumes/Evo/work/prism-local-library/research/sbi-d-source.json")
+
+
+def test_sbid_template_shape():
+    data = json.loads(SBID.read_text(encoding="utf-8"))
+    problems_ = check_library.template_problems(data)
+    assert problems_ == []
+    items = {k: v for k, v in data.items() if k not in ("Technical", "Metadata", "I18n", "Study")}
+    assert list(items) == [f"SBID{i:02d}" for i in range(1, 25)]
+    for v in items.values():
+        assert (v["MinValue"], v["MaxValue"], v["DataType"], v["ScaleType"]) == (1, 7, "integer", "likert")
+        assert list(v["Levels"]) == ["1", "7"]
+    assert data["Technical"]["Language"] == "de" and data["Study"]["LicenseLanguages"] == ["de"]
+    assert "Reversed" not in SBID.read_text(encoding="utf-8")
+    assert derived(SBID) == released("sbi-d") and len(derived(SBID)) == 24
+    ids = (ROOT / "ids" / "survey-ids.txt").read_text(encoding="utf-8").split()
+    assert ids[-25:] == ["prism:sbi-d"] + [f"prism:sbi-d.sbid{i:02d}" for i in range(1, 25)]
+
+
+@pytest.mark.skipif(not SOURCE_SBID.is_file(), reason="local source file not available (CI)")
+def test_sbid_wording_is_the_source_wording():
+    src = json.loads(SOURCE_SBID.read_text(encoding="utf-8"))
+    data = json.loads(SBID.read_text(encoding="utf-8"))
+    assert {f"SBID{int(i):02d}": t for i, t in src["Items"].items()} == {k: data[k]["Description"] for k in data if k.startswith("SBID")}
+    assert len(src["Items"]) == 24 and data["Study"]["Instructions"] == src["Instruction"]
+    assert data["SBID01"]["Levels"] == src["ScaleAnchors"]

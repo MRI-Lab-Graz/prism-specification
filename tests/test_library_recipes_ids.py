@@ -151,11 +151,11 @@ def _ids():
 
 def test_ids_list():
     ids = _ids()
-    assert len(ids) == 1478 + 1 + 8 + 2
+    assert len(ids) == 1478 + 1 + 8 + 2 + 25
     assert all(ID_RE.match(i) for i in ids)
     assert len(set(ids)) == len(ids)
-    if SRC_IDS.is_file():  # the released list only grew by the demo's lines
-        assert [i for i in ids if i != "prism:demo" and not i.startswith("prism:demo.")] == SRC_IDS.read_text(encoding="utf-8").splitlines()
+    if SRC_IDS.is_file():  # the released list only grew by the demo's and SBI-d's lines
+        assert [i for i in ids if i not in ("prism:demo", "prism:sbi-d") and not i.startswith(("prism:demo.", "prism:sbi-d."))] == SRC_IDS.read_text(encoding="utf-8").splitlines()
     readme = (ROOT / "ids" / "README.md").read_text(encoding="utf-8")
     assert "frozen" in readme.lower()
 

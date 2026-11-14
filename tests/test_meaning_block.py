@@ -151,7 +151,8 @@ def test_an_unusual_layout_is_a_problem_never_a_rewrite():
 
 def test_an_unknown_or_pending_modality_is_a_problem():
     real = mb.load_locations(SHARED)
-    for modality in ("nosuch", *real["pending"]):
+    real = {**real, "pending": {"synthetic": "later"}}  # the code stays for a future pending modality
+    for modality in ("nosuch", "synthetic"):
         new, problems = stamp(SYNTH, modality, BLOCK, real)
         assert new == SYNTH and problems
 
@@ -291,6 +292,14 @@ OLD_DOCS = {
                 "stim_file": {"Description": "s", "TermURL": "https://x.org/d"}}],
     "physio": [{"Technical": {"SamplingFrequency": 100, "Columns": ["ecg"]}, "Metadata": META,
                 "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Units": "mV", "Levels": {"1": "a"}}}}],
+    "survey": [{"Technical": {"StimulusType": "Questionnaire", "FileFormat": "tsv", "SoftwarePlatform": "LimeSurvey",
+                              "SoftwareVersion": "6.0", "Language": "en", "Respondent": "self", "AdministrationMethod": "online"},
+                "I18n": {"Languages": ["en"]},
+                "Study": {"TaskName": "pss", "OriginalName": "PSS", "Citation": "c", "LicenseID": "CC-BY-4.0",
+                          "Category": "Mood, Anxiety & Clinical Screening", "TermURL": "https://x.org/d"},
+                "Metadata": {"SchemaVersion": "2.0.0", "CreationDate": "2026-10-30", "Creator": "PRISM Studio"},
+                "Q01": {"Description": {"en": "x"}, "Levels": {"1": "a"}, "TermURL": "https://x.org/d"},
+                "Q02": {"AliasOf": "Q01"}}],
 }
 NEW_DOCS = {
     "biometrics": {"Technical": OLD_DOCS["biometrics"][0]["Technical"], "Study": {**OLD_DOCS["biometrics"][0]["Study"], "IsAbout": LINK},
@@ -304,6 +313,9 @@ NEW_DOCS = {
     "physio": {"Technical": OLD_DOCS["physio"][0]["Technical"], "Metadata": META, "Recording": {"IsAbout": LINK},
                "Channels": {"ecg": {"Description": "ecg", "Type": "ECG", "Units": "mV", "Levels": {"1": "a"}, **NEW}}},
 }
+NEW_DOCS["survey"] = copy.deepcopy(OLD_DOCS["survey"][0])
+NEW_DOCS["survey"]["Study"]["IsAbout"] = LINK
+NEW_DOCS["survey"]["Q01"].update(NEW)
 STAMPED = sorted(mb.load_locations(SHARED)["modalities"])
 
 
@@ -330,12 +342,15 @@ def test_every_existing_document_still_validates_after_the_release(modality):
     assert new_v.is_valid(NEW_DOCS[modality]), [e.message for e in new_v.iter_errors(NEW_DOCS[modality])]
 
 
-def test_the_modality_check_passes_with_survey_pending():
+def test_nothing_is_pending_and_the_modality_check_passes():
+    assert mb.load_locations(SHARED)["pending"] == {}
     assert _load("check_modalities").main([]) == 0
+    assert mb.load_locations(SHARED)["modalities"]["survey"] == {
+        "column": [["additionalProperties", "oneOf", 0]], "file": [["properties", "Study"]]}
 
 
 @pytest.mark.parametrize("modality", STAMPED)
-def test_five_schemas_carry_the_block(modality):
+def test_every_stamped_schema_carries_the_block(modality):
     text = (REPO / "schemas/stable" / f"{modality}.schema.json").read_text(encoding="utf-8")
     assert missing(text, modality, BLOCK, mb.load_locations(SHARED)) == []
 
@@ -407,7 +422,7 @@ def _column_of(modality, doc):
     doc = copy.deepcopy(doc)
     if modality == "physio":
         return doc, doc["Channels"]["ecg"]
-    return doc, doc[{"biometrics": "weight", "biosample": "cort", "environment": "temp", "events": "trial_type"}[modality]]
+    return doc, doc[{"biometrics": "weight", "biosample": "cort", "environment": "temp", "events": "trial_type", "survey": "Q01"}[modality]]
 
 
 @pytest.mark.parametrize("what, field, value", NEGATIVE, ids=[n[0] for n in NEGATIVE])

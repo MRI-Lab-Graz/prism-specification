@@ -5,7 +5,8 @@
     "environment": {"column": [["additionalProperties"]], "file": [["properties", "Study"]]},
     "events":      {"column": [["additionalProperties"], ["properties", "trial_type"], ["properties", "onset"], ["properties", "duration"], ["properties", "response_time"], ["properties", "stim_file"]],
                     "file": []},
-    "physio":      {"column": [["properties", "Channels", "additionalProperties"]], "file": [["properties", "Recording"]]}
+    "physio":      {"column": [["properties", "Channels", "additionalProperties"]], "file": [["properties", "Recording"]]},
+    "survey":      {"column": [["additionalProperties", "oneOf", 0]], "file": [["properties", "Study"]]}
   },
-  "pending": {"survey": "waits for the slim-survey release (prism-specification PR #32, schema 2.2.0); its column location is ['additionalProperties', 'oneOf', 0] and its file location ['properties', 'Study']"}
+  "pending": {}
 }

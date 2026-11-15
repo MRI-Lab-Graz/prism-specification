@@ -19,9 +19,9 @@
     "OriginalName": "The Depression, Anxiety, and Stress Scales with 21 items (DASS-21)",
     "ShortName": "DASS21",
     "Category": "Mood, Anxiety & Clinical Screening",
-    "Version": "21-item short form",
+    "Version": "21 items",
     "Construct": "Depression, anxiety and stress (negative emotional states)",
-    "Description": "Three self-report scales measuring depression, anxiety and stress. This template is the 21-item short form (DASS-21), whose items are taken from the 42-item DASS. Each item is answered on a 4-point frequency scale from 0 (Never) to 3 (Almost always).",
+    "Description": "Three self-report scales measuring depression, anxiety and stress. This template is the 21-item short form (DASS-21). Each item is answered on a 4-point frequency scale from 0 (Never) to 3 (Almost always).",
     "Keywords": [
       "depression",
       "anxiety",

@@ -71,10 +71,18 @@ def test_good_template_passes(tmp_path):
         lambda d: d["Study"].update(Year="1995"),  # g
         lambda d: d["Study"].update(Citation="Official webpage"),  # g
         lambda d: d["Study"].pop("Citation"),  # g
+        lambda d: d["Study"].update(Authors=[""]),  # g
+        lambda d: d["Study"].update(Authors=[1]),  # g
+        lambda d: d["Study"].update(Year=True),  # g
+        lambda d: d["Study"].update(Year=95),  # g
+        lambda d: d["Study"].update(Citation="Official Website."),  # g
+        lambda d: d["Study"].update(Citation="T.B.D."),  # g
+        lambda d: d["Study"].update(Citation="Doe 2020"),  # g short
     ],
     ids=["a", "b", "c", "d-str", "d-empty", "e-levels", "e-name", "e-missing", "e-empty", "e-badcode",
          "e-notlist", "e-technical", "e-i18n", "e-license", "f-itemcount", "f-subscales", "f-reversed",
-         "g-authors", "g-year", "g-year-str", "g-placeholder", "g-citation"],
+         "g-authors", "g-year", "g-year-str", "g-placeholder", "g-citation",
+         "g-author-empty", "g-author-int", "g-year-bool", "g-year-95", "g-website", "g-tbd", "g-short"],
 )
 def test_each_rule_refuses_and_names_the_file(tmp_path, mutate):
     out = problems(tmp_path, mutate)
@@ -255,6 +263,8 @@ def test_dass_bibliographic_metadata(task):
     study = data["Study"]
     assert study["Authors"] == ["Lovibond, S. H.", "Lovibond, P. F."]
     assert study["Year"] == 1995
+    assert study["Version"] == {"dass": "42 items", "dass21": "21 items"}[task]
+    assert "taken from" not in study["Description"]
     assert study["Citation"] != "Official webpage" and "Lovibond" in study["Citation"]
     assert len(study["References"]) >= 2 and study["References"][0]["Type"] == "primary"
     assert study["DOI"] == ""
@@ -484,3 +494,15 @@ def test_unquoted_or_long_quoted_german_is_still_flagged():
     assert check_library.looks_german(f"Epistemic beliefs are defined as {DE_DEF} (Priemer, 2006).")
     assert len(DE_LONG) > 300
     assert check_library.looks_german(f'"{DE_LONG}"')
+
+
+def test_many_short_quotes_cannot_hide_german():
+    chunk = DE_LONG[:290]
+    assert check_library.looks_german(" and ".join(f'"{chunk}"' for _ in range(20)))
+
+
+def test_mostly_english_with_short_quotes_passes():
+    t = (f'Epistemic beliefs are defined in the literature in several ways. One definition reads "{DE_DEF}". '
+         'A second one is "Papier und Bleistift". The scale itself is short and easy to score by hand, and it is '
+         'used in research on how students think about knowledge in the sciences and in daily life.')
+    assert not check_library.looks_german(t)

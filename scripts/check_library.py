@@ -5,11 +5,12 @@ Prints one line per problem (naming the file) and exits 1 when there is any.
 Rules: (a) Study.License quotes the rights holder, (b) Study.Source is an absolute https URL,
 (c) Study.LicenseChecked is YYYY-MM-DD, (d) Study.LicenseTerms is a list of short strings,
 (e) only languages named in Study.LicenseLanguages, (e2) descriptive Study metadata (Description, Notes,
-LicenseTerms, ...) is English (a quotation in quote marks of up to 300 characters may be in another language): other languages only in items, Levels, Instructions, OriginalName, bibliographic
+LicenseTerms, ...) is English (quotations of up to 300 characters may be in another language, while they make up
+at most 60% of the text): other languages only in items, Levels, Instructions, OriginalName, bibliographic
 data, the quoted Study.License evidence and the instruction and bibliographic sections of
 ArchiveMetadata (ARCHIVE_TEXT_EXEMPT), (f) no Study.ItemCount, Study.Subscales or item Reversed, (g) bibliographic
-completeness: Study.Authors is a non-empty list, Study.Year an integer and Study.Citation a real citation (not the
-placeholder "Official webpage").
+completeness: Study.Authors is a non-empty list of non-empty strings, Study.Year an integer >= 1900 and
+Study.Citation a real citation (at least 15 characters, not a placeholder such as "Official webpage").
 """
 
 from __future__ import annotations
@@ -50,15 +51,18 @@ has had can may such than also between into their they we our been being but if 
 both other more most only very over under after before through about""".split())
 _DE, _EN = _DE - _EN, _EN - _DE
 GERMAN_WORD = re.compile(r"[a-zäöüß]+")
-
-
 SHORT_QUOTE = re.compile(r'"[^"]{0,300}"|„[^“”]{0,300}[“”]|“[^”]{0,300}”|‚[^‘’]{0,300}[‘’]')
+QUOTE_SHARE = 0.6  # quotes may be at most this share of the text, else they are counted too
+PLACEHOLDER_CITATIONS = {"officialwebpage", "officialwebsite", "tbd", "na", "unknown"}
 
 
 def looks_german(text: str) -> bool:
     """Cheap heuristic: German function words (and umlauts) clearly outweigh English ones. Not a language detector.
-    Quoted passages of at most 300 characters are quotations and are not counted; longer ones are."""
-    text = SHORT_QUOTE.sub(" ", text)
+    Quoted passages of at most 300 characters are quotations and are not counted, unless together they are more than
+    60% of the text; longer quoted passages are always counted."""
+    quoted = sum(len(m.group()) for m in SHORT_QUOTE.finditer(text))
+    if quoted <= QUOTE_SHARE * len(text):
+        text = SHORT_QUOTE.sub(" ", text)
     words = GERMAN_WORD.findall(text.lower())
     de = sum(w in _DE for w in words)
     de += de and sum(w in _DE_WEAK for w in words)
@@ -169,14 +173,16 @@ def template_problems(data: dict) -> list[str]:
     out += [f"language {x!r} is not in Study.LicenseLanguages" for x in used if x not in langs]
     _langs(data, "", langs, out)
     out += english_problems(study)
-    if not (isinstance(study.get("Authors"), list) and study["Authors"]):
-        out.append("Study.Authors must be a non-empty list")
+    authors = study.get("Authors")
+    if not (isinstance(authors, list) and authors and all(isinstance(a, str) and a.strip() for a in authors)):
+        out.append("Study.Authors must be a non-empty list of non-empty strings")
     year = study.get("Year")
-    if not (isinstance(year, int) and not isinstance(year, bool)):
-        out.append("Study.Year must be an integer")
+    if not (isinstance(year, int) and not isinstance(year, bool) and year >= 1900):
+        out.append("Study.Year must be an integer, 1900 or later")
     cit = study.get("Citation")
-    if not (isinstance(cit, str) and cit.strip() and cit.strip().lower() != "official webpage"):
-        out.append("Study.Citation must be a real citation, not empty or 'Official webpage'")
+    if not (isinstance(cit, str) and len(cit.strip()) >= 15
+            and re.sub(r"[\W_]+", "", cit.lower()) not in PLACEHOLDER_CITATIONS):
+        out.append("Study.Citation must be a real citation (15+ characters), not empty or a placeholder")
     for key in ("ItemCount", "Subscales"):
         if key in study:
             out.append(f"Study.{key} must not be set")

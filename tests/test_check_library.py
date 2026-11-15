@@ -459,3 +459,28 @@ def test_german_description_still_refused_next_to_exempt_sections(tmp_path):
         d["Study"]["ArchiveMetadata"] = {"sections": {"Rezensionen": [DE_TEXTS[0]]}}
         d["Study"]["Description"] = DE_TEXTS[0]
     assert problems(tmp_path, f)
+
+
+EBI = ('The Fragebogen zur Wahrnehmung der Psychologie als Wissenschaft (= Epistemic Beliefs Inventory - '
+       'Absolutism-Multiplism, abbr.: EBI-AM; ...) is used to assess discipline-specific epistemic beliefs. '
+       'Epistemic beliefs are defined as "individuelle subjektive Ansichten, Auffassungen und Theorien über die '
+       'Genese, Ontologie, Bedeutung, Rechtfertigung und Gültigkeit von Wissen in den Wissenschaften" '
+       '(Priemer, 2006, p. 160).')
+DE_DEF = ("individuelle subjektive Ansichten, Auffassungen und Theorien über die Genese, Ontologie, Bedeutung, "
+          "Rechtfertigung und Gültigkeit von Wissen in den Wissenschaften")
+DE_LONG = ("Die Durchführung dauert etwa zehn Minuten und kann einzeln oder in der Gruppe erfolgen. Der Gesamtwert "
+           "wird durch Addition der Itemwerte berechnet, wobei die Items 3 und 7 umgepolt werden müssen. Das "
+           "Verfahren ist kostenlos und frei verfügbar und eignet sich für Erwachsene sowie Jugendliche in der Praxis "
+           "und in der Forschung.")
+
+
+def test_short_quoted_german_is_a_quote_not_flagged():
+    assert not check_library.looks_german(EBI)
+    assert not check_library.looks_german('"Papier und Bleistift"')
+    assert not check_library.looks_german("It is called „Papier und Bleistift“ and “Fragebogen zur Angst”.")
+
+
+def test_unquoted_or_long_quoted_german_is_still_flagged():
+    assert check_library.looks_german(f"Epistemic beliefs are defined as {DE_DEF} (Priemer, 2006).")
+    assert len(DE_LONG) > 300
+    assert check_library.looks_german(f'"{DE_LONG}"')

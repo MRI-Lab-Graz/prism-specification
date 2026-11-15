@@ -5,7 +5,7 @@ Prints one line per problem (naming the file) and exits 1 when there is any.
 Rules: (a) Study.License quotes the rights holder, (b) Study.Source is an absolute https URL,
 (c) Study.LicenseChecked is YYYY-MM-DD, (d) Study.LicenseTerms is a list of short strings,
 (e) only languages named in Study.LicenseLanguages, (e2) descriptive Study metadata (Description, Notes,
-LicenseTerms, ...) is English: other languages only in items, Levels, Instructions, OriginalName, bibliographic
+LicenseTerms, ...) is English (a quotation in quote marks of up to 300 characters may be in another language): other languages only in items, Levels, Instructions, OriginalName, bibliographic
 data, the quoted Study.License evidence and the instruction and bibliographic sections of
 ArchiveMetadata (ARCHIVE_TEXT_EXEMPT), (f) no Study.ItemCount, Study.Subscales or item Reversed, (g) bibliographic
 completeness: Study.Authors is a non-empty list, Study.Year an integer and Study.Citation a real citation (not the
@@ -52,8 +52,13 @@ _DE, _EN = _DE - _EN, _EN - _DE
 GERMAN_WORD = re.compile(r"[a-zäöüß]+")
 
 
+SHORT_QUOTE = re.compile(r'"[^"]{0,300}"|„[^“”]{0,300}[“”]|“[^”]{0,300}”|‚[^‘’]{0,300}[‘’]')
+
+
 def looks_german(text: str) -> bool:
-    """Cheap heuristic: German function words (and umlauts) clearly outweigh English ones. Not a language detector."""
+    """Cheap heuristic: German function words (and umlauts) clearly outweigh English ones. Not a language detector.
+    Quoted passages of at most 300 characters are quotations and are not counted; longer ones are."""
+    text = SHORT_QUOTE.sub(" ", text)
     words = GERMAN_WORD.findall(text.lower())
     de = sum(w in _DE for w in words)
     de += de and sum(w in _DE_WEAK for w in words)

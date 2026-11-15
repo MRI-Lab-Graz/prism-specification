@@ -161,6 +161,14 @@ list. The evidence names the languages: adding a language is a visible, reviewed
 translation needs the rights holder's licence for that language. CI enforces this with
 `python scripts/check_library.py`; see `library/NOTICE.md`.
 
+All descriptive metadata of a template is English (`Study.Description`, `Construct`, `Reliability`, `Validity`,
+`Norming`, `Notes`, `PermissionsNote`, `RecallPeriod`, `Keywords`, `LicenseTerms`, `ArchiveMetadata`,
+`AdministrationTime`, `ScoringTime`, `AgeRange`): plain English text, or an object with only an `en` key. Only the
+instrument's own text may be in another language: the items' `Description` and `Levels`, `Study.Instructions` and
+`Study.OriginalName`; so may bibliographic data (`Authors`, `Citation`, `References`) and the quoted rights-holder
+statement in `Study.License`. CI runs a rough check that flags German descriptive text; it is a heuristic, so
+translate the text rather than trying to get around it.
+
 ## Adding a mapping
 
 A mapping says what an ID is the same as or measures in another vocabulary. It never changes the data

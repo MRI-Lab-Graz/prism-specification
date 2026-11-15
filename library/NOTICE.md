@@ -12,6 +12,10 @@ ITS OWN terms, which are stated in the template and are set by the rights holder
 * A template carries only the languages its licence evidence covers: `Study.LicenseLanguages` names them,
   and a translation the rights holder did not license is not shipped. Adding a language means editing that
   list in a reviewed change, with evidence for that language.
+* Descriptive metadata (description, notes, reliability, validity, norming, keywords, licence terms, archive
+  metadata) is always English, whatever the language of the instrument. Only the instrument's own text (items,
+  response levels, instructions, original name), bibliographic data and the quoted licence statement stay in the
+  original language.
 * If you hold rights to an instrument and want it removed, write to
   <contact address to be set by the maintainers>.
 * This folder is excluded from the CC BY 4.0 grant of this repository (see LICENSE). The rest of

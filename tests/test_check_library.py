@@ -34,7 +34,7 @@ GOOD = {
 def problems(tmp_path, mutate):
     data = copy.deepcopy(GOOD)
     mutate(data)
-    (tmp_path / "library" / "survey").mkdir(parents=True)
+    (tmp_path / "library" / "survey").mkdir(parents=True, exist_ok=True)
     (tmp_path / "library" / "survey" / "survey-x.json").write_text(json.dumps(data), encoding="utf-8")
     return check_library.check(tmp_path)
 
@@ -141,6 +141,56 @@ def test_german_key_in_english_template_is_refused(tmp_path):
     assert problems(tmp_path, lambda d: d["X01"]["Description"].update(de="Punkt"))
 
 
+@pytest.mark.parametrize("key,val", [
+    ("AdministrationTime", {"min": 5, "max": 10}),
+    ("ScoringTime", {"min": 5, "max": 10}),
+    ("AgeRange", {"min": 18, "max": 65}),
+    ("AgeRange", {"max": 1}),
+])
+def test_min_max_objects_are_not_language_objects(tmp_path, key, val):
+    assert problems(tmp_path, lambda d: d["Study"].update({key: val})) == []
+
+
+def test_levels_map_with_no_key_passes(tmp_path):
+    assert problems(tmp_path, lambda d: d["X01"].update(Levels={"no": "Nein", "yes": "Ja"})) == []
+
+
+@pytest.mark.parametrize("val", [{"de": "Punkt"}, {"en": "a", "de": "b"}, {"deu": "x"}])
+def test_real_language_objects_outside_license_are_refused(tmp_path, val):
+    assert problems(tmp_path, lambda d: d["X01"].update(Description=val))
+
+
+@pytest.mark.parametrize("val", [{"xx": "a"}, {"gsw": "a"}, {"DE": "a"}, {"de": "x", "foo": "y"}, {"en": "x", "min": 1}])
+def test_unknown_uppercase_and_mixed_language_objects_are_refused(tmp_path, val):
+    assert problems(tmp_path, lambda d: d["X01"].update(Description=val))
+
+
+def test_licensed_language_object_passes(tmp_path):
+    def f(d):
+        german(d)
+        d["X01"]["Description"] = {"de": "x"}
+    assert problems(tmp_path, f) == []
+
+
+def test_language_object_nested_in_list_is_refused(tmp_path):
+    assert problems(tmp_path, lambda d: d["X01"].update(Extra=[{"de": "x"}]))
+
+
+def test_min_max_in_list_passes(tmp_path):
+    assert problems(tmp_path, lambda d: d["X01"].update(Extra=[{"min": 1, "max": 2}])) == []
+
+
+def test_reference_with_doi_field_is_not_a_language_object(tmp_path):
+    assert problems(tmp_path, lambda d: d["Study"].update(References=[{"Type": "x", "Citation": "y", "DOI": "z"}])) == []
+
+
+def test_root_level_item_named_like_a_language_code_is_fine(tmp_path):
+    def f(d):
+        for k in ("age", "sex", "id", "bmi"):
+            d[k] = copy.deepcopy(d["X01"])
+    assert problems(tmp_path, f) == []
+
+
 def test_cli_exit_code(tmp_path):
     problems(tmp_path, lambda d: d["Study"].update(ItemCount=1))
     r = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_library.py"), "--repo", str(tmp_path)],
@@ -209,3 +259,128 @@ def test_sbid_wording_is_the_source_wording():
     assert {f"SBID{int(i):02d}": t for i, t in src["Items"].items()} == {k: data[k]["Description"] for k in data if k.startswith("SBID")}
     assert len(src["Items"]) == 24 and data["Study"]["Instructions"] == src["Instruction"]
     assert data["SBID01"]["Levels"] == src["ScaleAnchors"]
+
+
+DE_TEXTS = [
+    "Der Fragebogen erfasst die subjektive Belastung durch depressive Symptome, Angst und Stress und wird in der "
+    "klinischen Praxis sowie in der Forschung eingesetzt. Die Probanden beantworten die Aussagen auf einer vierstufigen "
+    "Skala und es wird ein Summenwert für jede Skala gebildet, der nicht von der Anzahl der Items abhängt.",
+    "Die interne Konsistenz der Skalen ist mit Werten zwischen .80 und .92 als gut bis sehr gut zu bewerten. Die "
+    "Retest-Reliabilität über einen Zeitraum von vier Wochen liegt bei .75, und die Ergebnisse sind auch bei "
+    "klinischen Stichproben stabil, wobei die Werte für Männer und Frauen sich nicht unterscheiden.",
+    "Die faktorielle Validität wurde mit einer konfirmatorischen Faktorenanalyse geprüft, die ein dreifaktorielles "
+    "Modell bestätigt hat. Die Skalen korrelieren mit anderen Verfahren zur Erfassung der Depressivität und es gibt "
+    "Hinweise auf die Kriteriumsvalidität, die jedoch nur an einer kleinen Stichprobe untersucht wurde.",
+    "Dieses Verfahren wurde von den Autoren aus dem Englischen übersetzt und für den deutschen Sprachraum angepasst. "
+    "Die Bewertung der Items erfolgt nicht umgekehrt, und die Auswertung ist für Erwachsene ab 18 Jahren geeignet, "
+    "die über ausreichende Deutschkenntnisse verfügen, um die Aussagen zu verstehen und zu beantworten.",
+    "Die Normierung erfolgte an einer repräsentativen Stichprobe der deutschen Bevölkerung mit mehr als 2000 "
+    "Personen. Für die Auswertung stehen Prozentränge und T-Werte nach Alter und Geschlecht zur Verfügung, die "
+    "von den Autoren auf der Webseite des Testarchivs veröffentlicht wurden und frei zugänglich sind.",
+]
+EN_TEXTS = [
+    "The questionnaire measures the subjective burden of depressive symptoms, anxiety and stress and is used in "
+    "clinical practice and in research. Participants answer the statements on a four-point scale and a sum score "
+    "is formed for each scale, which does not depend on the number of items in the questionnaire.",
+    "The internal consistency of the scales is good to very good, with values between .80 and .92. The test-retest "
+    "reliability over a period of four weeks is .75, and the results are also stable in clinical samples, with no "
+    "difference between the values for men and women in any of the studies that were reviewed.",
+    "Factorial validity was tested with a confirmatory factor analysis, which confirmed a three-factor model. The "
+    "scales correlate with other measures of depression and there is evidence for criterion validity, which has "
+    "however only been examined in a small sample of adults from one university.",
+]
+
+
+def _with(field, text):
+    return lambda d: d["Study"].update({field: text})
+
+
+@pytest.mark.parametrize("i,field", [(0, "Description"), (1, "Reliability"), (2, "Validity"), (3, "Notes"),
+                                     (4, "Norming"), (0, "Construct")])
+def test_german_descriptive_field_is_refused(tmp_path, i, field):
+    out = problems(tmp_path, _with(field, DE_TEXTS[i]))
+    assert any(f"Study.{field}: text looks German" in x for x in out)
+
+
+def test_german_in_archive_metadata_keywords_and_terms_is_refused(tmp_path):
+    assert problems(tmp_path, _with("ArchiveMetadata", {"Abstract": {"x": [DE_TEXTS[0]]}}))
+    assert problems(tmp_path, _with("Keywords", ["depression", DE_TEXTS[1]]))
+    assert problems(tmp_path, _with("LicenseTerms", [DE_TEXTS[2]]))
+
+
+@pytest.mark.parametrize("field", ["Description", "Reliability", "Validity", "Notes"])
+def test_english_descriptive_field_passes(tmp_path, field):
+    for t in EN_TEXTS:
+        assert problems(tmp_path, _with(field, t)) == []
+        assert problems(tmp_path, _with(field, {"en": t})) == []
+
+
+def test_german_object_or_other_language_key_in_description_is_refused(tmp_path):
+    assert problems(tmp_path, _with("Description", {"de": DE_TEXTS[0]}))
+    assert problems(tmp_path, _with("Description", {"en": "ok", "fr": "ok"}))
+
+
+def test_instrument_text_and_license_quotes_may_be_german(tmp_path):
+    def f(d):
+        german(d)
+        d["X01"]["Description"] = DE_TEXTS[3]
+        d["Study"]["Instructions"] = DE_TEXTS[0]
+        d["Study"]["OriginalName"] = "Fragebogen zur Erfassung der Persönlichkeit und Stimmung"
+        d["Study"]["License"] = '"' + DE_TEXTS[4] + '"'
+        d["Study"]["Citation"] = DE_TEXTS[1]
+    assert problems(tmp_path, f) == []
+
+
+def test_english_object_passes_when_licence_covers_only_german(tmp_path):
+    def f(d):
+        german(d)
+        d["Study"]["Description"] = {"en": EN_TEXTS[0]}
+    assert problems(tmp_path, f) == []
+
+
+@pytest.mark.parametrize("v", ["Adults", "Paper-pencil", "5 minutes"])
+def test_short_english_strings_pass(tmp_path, v):
+    assert problems(tmp_path, _with("AgeRange", v)) == []
+    assert problems(tmp_path, _with("Keywords", [v])) == []
+
+
+def test_english_with_german_title_and_names_passes(tmp_path):
+    t = ("The German adaptation, titled Fragebogen zur Erfassung der Depressivität, was published by Müller and "
+         "Schröder in Göttingen. It measures the burden of depressive symptoms in adults and is used in clinical "
+         "practice and in research, where it has been applied to samples from several countries.")
+    assert problems(tmp_path, _with("Description", t)) == []
+
+
+SHORT_DE = [
+    "Die Skala wurde an einer Stichprobe von Studierenden validiert und zeigt eine gute Reliabilität.",
+    "Der Test ist für Kinder und Jugendliche geeignet.",
+    "Es handelt sich um ein Selbstbeurteilungsverfahren, das nicht von Experten ausgewertet werden muss.",
+    "Die Durchführung dauert etwa zehn Minuten und kann einzeln oder in der Gruppe erfolgen.",
+    "Der Gesamtwert wird durch Addition der Itemwerte berechnet, wobei die Items 3 und 7 umgepolt werden müssen.",
+    "Erwachsene", "Fragebogen", "Kinder und Jugendliche", "Selbstbeurteilung", "Fragebogen zur Erfassung von Angst",
+    "Dauer etwa 10 Minuten", "Für Erwachsene ab 18 Jahren", "Wird vom Testleiter vorgelesen",
+    "Nicht für den klinischen Einsatz geeignet", "Das Verfahren ist kostenlos und frei verfügbar",
+    "Auswertung mit Schablone oder am Computer", "Nur zur Forschung", "Selbstbeurteilung und Fremdbeurteilung",
+]
+SHORT_EN = [
+    "Adults", "Paper-pencil", "5 minutes", "Self-report questionnaire for adults", "Takes about ten minutes to complete.",
+    "Anxiety and depression in children", "Original German version", "Adapted from Bryant (2003).",
+    "German version of the Beck Depression Inventory", "Scores are summed; higher means more severe.",
+    "Items 3 and 7 are reverse coded.",     "Translated by two bilingual psychologists in Vienna.", "Online, in groups or individually", "Screening in primary care",
+    "Persönlichkeit", "Zürich", "Adolescents aged 12 to 18",
+]
+
+
+@pytest.mark.parametrize("t", SHORT_DE)
+def test_short_german_is_flagged(t):
+    assert check_library.looks_german(t), t
+
+
+@pytest.mark.parametrize("t", SHORT_EN)
+def test_short_english_is_not_flagged(t):
+    assert not check_library.looks_german(t), t
+
+
+def test_short_german_keyword_and_note_are_refused_in_a_template(tmp_path):
+    assert problems(tmp_path, _with("Keywords", ["anxiety", "Selbstbeurteilung"]))
+    assert problems(tmp_path, _with("Notes", "Der Test ist für Kinder und Jugendliche geeignet."))

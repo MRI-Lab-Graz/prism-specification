@@ -15,7 +15,10 @@ ITS OWN terms, which are stated in the template and are set by the rights holder
 * Descriptive metadata (description, notes, reliability, validity, norming, keywords, licence terms, archive
   metadata) is always English, whatever the language of the instrument. Only the instrument's own text (items,
   response levels, instructions, original name), bibliographic data and the quoted licence statement stay in the
-  original language.
+  original language. Four sections of the imported archive metadata are kept as quoted for the same reason:
+  the instruction to respondents and test administrators (`Durchführung/Instruktion`) is instrument text, and
+  `Wichtige neuere Publikationen`, `Rezensionen` and `Orginalfassung/Anderssprachlige Fassungen` are
+  bibliographic data. All other archive metadata is English.
 * If you hold rights to an instrument and want it removed, write to
   <contact address to be set by the maintainers>.
 * This folder is excluded from the CC BY 4.0 grant of this repository (see LICENSE). The rest of

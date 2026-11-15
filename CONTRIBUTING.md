@@ -166,8 +166,17 @@ All descriptive metadata of a template is English (`Study.Description`, `Constru
 `AdministrationTime`, `ScoringTime`, `AgeRange`): plain English text, or an object with only an `en` key. Only the
 instrument's own text may be in another language: the items' `Description` and `Levels`, `Study.Instructions` and
 `Study.OriginalName`; so may bibliographic data (`Authors`, `Citation`, `References`) and the quoted rights-holder
-statement in `Study.License`. CI runs a rough check that flags German descriptive text; it is a heuristic, so
+statement in `Study.License`. Inside `ArchiveMetadata`, four sections (by exact key) keep the
+original wording of imported Open Test Archive templates: `Durchführung/Instruktion` (the instruction to
+respondents and test administrators, instrument text like `Study.Instructions`) and the bibliographic sections
+`Wichtige neuere Publikationen`, `Rezensionen` and `Orginalfassung/Anderssprachlige Fassungen`. Everything else in
+`ArchiveMetadata` stays English. CI runs a rough check that flags German descriptive text; a quotation in quote marks of up to 300 characters
+(such as a quoted German definition) is not counted, a longer quoted passage is. It is a heuristic, so
 translate the text rather than trying to get around it.
+
+Every template must also be bibliographically complete (rule g of `check_library.py`): `Study.Authors` a non-empty
+list, `Study.Year` an integer and `Study.Citation` a real citation, never a placeholder such as "Official webpage".
+Put the primary citation in `Citation`, and further papers, manuals and sourcebook entries in `References`.
 
 ## Adding a mapping
 

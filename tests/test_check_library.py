@@ -26,6 +26,9 @@ GOOD = {
         "LicenseChecked": "2026-11-14",
         "LicenseTerms": ["Do not sell."],
         "LicenseLanguages": ["en"],
+        "Authors": ["Doe, J."],
+        "Year": 2020,
+        "Citation": "Doe, J. (2020). X.",
     },
     "X01": {"Description": {"en": "Item"}, "Levels": {"0": {"en": "No"}}},
 }
@@ -63,9 +66,15 @@ def test_good_template_passes(tmp_path):
         lambda d: d["Study"].update(ItemCount=1),  # f
         lambda d: d["Study"].update(Subscales={}),  # f
         lambda d: d["X01"].update(Reversed=False),  # f
+        lambda d: d["Study"].update(Authors=[]),  # g
+        lambda d: d["Study"].update(Year=None),  # g
+        lambda d: d["Study"].update(Year="1995"),  # g
+        lambda d: d["Study"].update(Citation="Official webpage"),  # g
+        lambda d: d["Study"].pop("Citation"),  # g
     ],
     ids=["a", "b", "c", "d-str", "d-empty", "e-levels", "e-name", "e-missing", "e-empty", "e-badcode",
-         "e-notlist", "e-technical", "e-i18n", "e-license", "f-itemcount", "f-subscales", "f-reversed"],
+         "e-notlist", "e-technical", "e-i18n", "e-license", "f-itemcount", "f-subscales", "f-reversed",
+         "g-authors", "g-year", "g-year-str", "g-placeholder", "g-citation"],
 )
 def test_each_rule_refuses_and_names_the_file(tmp_path, mutate):
     out = problems(tmp_path, mutate)
@@ -232,6 +241,34 @@ def test_real_template(task):
     assert data["I18n"]["Languages"] == ["en"]
 
 
+DASS_ITEMS_SHA256 = {  # sha256 of the items block (sorted-key JSON) at the commit before the metadata fix
+    "dass": "174e18ee277cc40b07c202865fba79d2e743cac08f0059291b0e7b4d834c6f48",
+    "dass21": "25ef2599f97c08524c0b8b30a8b6962dee27b218031173d5674703c906adf197",
+}
+
+
+@pytest.mark.parametrize("task", ["dass", "dass21"])
+def test_dass_bibliographic_metadata(task):
+    import hashlib
+
+    data = json.loads((LIB / f"survey-{task}.json").read_text(encoding="utf-8"))
+    study = data["Study"]
+    assert study["Authors"] == ["Lovibond, S. H.", "Lovibond, P. F."]
+    assert study["Year"] == 1995
+    assert study["Citation"] != "Official webpage" and "Lovibond" in study["Citation"]
+    assert len(study["References"]) >= 2 and study["References"][0]["Type"] == "primary"
+    assert study["DOI"] == ""
+    items = {k: v for k, v in data.items() if k not in ("Technical", "Metadata", "I18n", "Study")}
+    blob = json.dumps(items, sort_keys=True, ensure_ascii=False).encode()
+    assert hashlib.sha256(blob).hexdigest() == DASS_ITEMS_SHA256[task]
+
+
+@pytest.mark.parametrize("path", sorted(LIB.glob("*.json")), ids=lambda p: p.stem)
+def test_every_shipped_template_is_bibliographically_complete(path):
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert not [p for p in check_library.template_problems(data) if "Authors" in p or "Year" in p or "Citation" in p]
+
+
 SBID = LIB / "survey-sbi-d.json"
 SOURCE_SBID = Path("/Volumes/Evo/work/prism-local-library/research/sbi-d-source.json")
 
@@ -384,3 +421,66 @@ def test_short_english_is_not_flagged(t):
 def test_short_german_keyword_and_note_are_refused_in_a_template(tmp_path):
     assert problems(tmp_path, _with("Keywords", ["anxiety", "Selbstbeurteilung"]))
     assert problems(tmp_path, _with("Notes", "Der Test ist für Kinder und Jugendliche geeignet."))
+
+
+ARCHIVE_EXEMPT = ["Durchführung/Instruktion", "Wichtige neuere Publikationen", "Rezensionen",
+                  "Orginalfassung/Anderssprachlige Fassungen"]
+
+
+def _archive(section_or_field, key, text=None):
+    text = text or DE_TEXTS[0]
+    return _with("ArchiveMetadata", {section_or_field: {key: [text]}})
+
+
+@pytest.mark.parametrize("key", ARCHIVE_EXEMPT)
+def test_german_in_exempt_archive_sections_passes(tmp_path, key):
+    assert problems(tmp_path, _archive("sections", key)) == []
+    assert problems(tmp_path, _archive("sections", key, DE_TEXTS[1])) == []
+
+
+@pytest.mark.parametrize("section,key", [
+    ("sections", "Kurzabstract"), ("sections", "Testkonzept/Theoretischer Hintergrund"),
+    ("fields", "Reliabilität"), ("fields", "Durchführung/Instruktion"),
+    ("sections", "Durchführung/Instruktion (Entwurf)"), ("sections", "Rezensionen und mehr"),
+    ("other", "Rezensionen"),
+])
+def test_german_elsewhere_in_archive_metadata_is_refused(tmp_path, section, key):
+    assert problems(tmp_path, _archive(section, key))
+
+
+def test_exempt_archive_section_does_not_hide_a_sibling(tmp_path):
+    out = problems(tmp_path, _with("ArchiveMetadata", {"sections": {"Rezensionen": [DE_TEXTS[0]],
+                                                                    "Kurzabstract": [DE_TEXTS[1]]}}))
+    assert len(out) == 1
+
+
+def test_german_description_still_refused_next_to_exempt_sections(tmp_path):
+    def f(d):
+        d["Study"]["ArchiveMetadata"] = {"sections": {"Rezensionen": [DE_TEXTS[0]]}}
+        d["Study"]["Description"] = DE_TEXTS[0]
+    assert problems(tmp_path, f)
+
+
+EBI = ('The Fragebogen zur Wahrnehmung der Psychologie als Wissenschaft (= Epistemic Beliefs Inventory - '
+       'Absolutism-Multiplism, abbr.: EBI-AM; ...) is used to assess discipline-specific epistemic beliefs. '
+       'Epistemic beliefs are defined as "individuelle subjektive Ansichten, Auffassungen und Theorien über die '
+       'Genese, Ontologie, Bedeutung, Rechtfertigung und Gültigkeit von Wissen in den Wissenschaften" '
+       '(Priemer, 2006, p. 160).')
+DE_DEF = ("individuelle subjektive Ansichten, Auffassungen und Theorien über die Genese, Ontologie, Bedeutung, "
+          "Rechtfertigung und Gültigkeit von Wissen in den Wissenschaften")
+DE_LONG = ("Die Durchführung dauert etwa zehn Minuten und kann einzeln oder in der Gruppe erfolgen. Der Gesamtwert "
+           "wird durch Addition der Itemwerte berechnet, wobei die Items 3 und 7 umgepolt werden müssen. Das "
+           "Verfahren ist kostenlos und frei verfügbar und eignet sich für Erwachsene sowie Jugendliche in der Praxis "
+           "und in der Forschung.")
+
+
+def test_short_quoted_german_is_a_quote_not_flagged():
+    assert not check_library.looks_german(EBI)
+    assert not check_library.looks_german('"Papier und Bleistift"')
+    assert not check_library.looks_german("It is called „Papier und Bleistift“ and “Fragebogen zur Angst”.")
+
+
+def test_unquoted_or_long_quoted_german_is_still_flagged():
+    assert check_library.looks_german(f"Epistemic beliefs are defined as {DE_DEF} (Priemer, 2006).")
+    assert len(DE_LONG) > 300
+    assert check_library.looks_german(f'"{DE_LONG}"')

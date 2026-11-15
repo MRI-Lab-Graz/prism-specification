@@ -160,6 +160,30 @@ def test_real_language_objects_outside_license_are_refused(tmp_path, val):
     assert problems(tmp_path, lambda d: d["X01"].update(Description=val))
 
 
+@pytest.mark.parametrize("val", [{"xx": "a"}, {"gsw": "a"}, {"DE": "a"}, {"de": "x", "foo": "y"}, {"en": "x", "min": 1}])
+def test_unknown_uppercase_and_mixed_language_objects_are_refused(tmp_path, val):
+    assert problems(tmp_path, lambda d: d["X01"].update(Description=val))
+
+
+def test_licensed_language_object_passes(tmp_path):
+    def f(d):
+        german(d)
+        d["X01"]["Description"] = {"de": "x"}
+    assert problems(tmp_path, f) == []
+
+
+def test_language_object_nested_in_list_is_refused(tmp_path):
+    assert problems(tmp_path, lambda d: d["X01"].update(Extra=[{"de": "x"}]))
+
+
+def test_min_max_in_list_passes(tmp_path):
+    assert problems(tmp_path, lambda d: d["X01"].update(Extra=[{"min": 1, "max": 2}])) == []
+
+
+def test_reference_with_doi_field_is_not_a_language_object(tmp_path):
+    assert problems(tmp_path, lambda d: d["Study"].update(References=[{"Type": "x", "Citation": "y", "DOI": "z"}])) == []
+
+
 def test_cli_exit_code(tmp_path):
     problems(tmp_path, lambda d: d["Study"].update(ItemCount=1))
     r = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_library.py"), "--repo", str(tmp_path)],

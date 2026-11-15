@@ -19,35 +19,29 @@ from urllib.parse import urlparse
 
 TEXT_FIELDS = ("Description", "Levels", "Instructions", "OriginalName")
 LANG = re.compile(r"[a-z]{2,3}")
-# ISO 639-1 codes plus common ISO 639-3 ones: a dict is a language object only when all keys are in here
-LANG_CODES = frozenset({
-    "aa", "ab", "ae", "af", "ak", "am", "an", "ar", "as", "av", "ay", "az", "ba", "be", "bg", "bh", "bi",
-    "bm", "bn", "bo", "br", "bs", "ca", "ce", "ch", "co", "cr", "cs", "cu", "cv", "cy", "da", "de", "dv",
-    "dz", "ee", "el", "en", "eo", "es", "et", "eu", "fa", "ff", "fi", "fj", "fo", "fr", "fy", "ga", "gd",
-    "gl", "gn", "gu", "gv", "ha", "he", "hi", "ho", "hr", "ht", "hu", "hy", "hz", "ia", "id", "ie", "ig",
-    "ii", "ik", "io", "is", "it", "iu", "ja", "jv", "ka", "kg", "ki", "kj", "kk", "kl", "km", "kn", "ko",
-    "kr", "ks", "ku", "kv", "kw", "ky", "la", "lb", "lg", "li", "ln", "lo", "lt", "lu", "lv", "mg", "mh",
-    "mi", "mk", "ml", "mn", "mr", "ms", "mt", "my", "na", "nb", "nd", "ne", "ng", "nl", "nn", "no", "nr",
-    "nv", "ny", "oc", "oj", "om", "or", "os", "pa", "pi", "pl", "ps", "pt", "qu", "rm", "rn", "ro", "ru",
-    "rw", "sa", "sc", "sd", "se", "sg", "si", "sk", "sl", "sm", "sn", "so", "sq", "sr", "ss", "st", "su",
-    "sv", "sw", "ta", "te", "tg", "th", "ti", "tk", "tl", "tn", "to", "tr", "ts", "tt", "tw", "ty", "ug",
-    "uk", "ur", "uz", "ve", "vi", "vo", "wa", "wo", "xh", "yi", "yo", "za", "zh", "zu", "deu", "eng", "fra",
-    "spa", "ita", "por", "rus", "nld", "pol", "tur", "zho", "jpn", "kor", "ara", "swe", "dan", "nor", "fin",
-    "ces", "hun", "ron", "ell", "heb", "hin", "fas", "tha", "vie", "ukr", "hrv", "srp", "bul", "slk", "slv",
-    "cat",
-})
+LOOSE_LANG = re.compile(r"[A-Za-z]{2,3}")
+NON_LANGUAGE_KEYS = {"min", "max"}  # AdministrationTime / ScoringTime / AgeRange
 NON_ITEMS = ("Technical", "Metadata", "I18n", "Study", "Normative")
 QUOTE = re.compile(r'["“][^"”]{10,}["”]')
 
 
 def _langs(value, path, allowed, out, level_map=False):
-    """Report language keys, in any dict below value whose keys are all known language codes (a {min, max} object is not one), that are not allowed."""
+    """Report language keys, in any dict below value with a lowercase 2-3 letter key, or only 2-3 letter keys (a pure {min, max} object is data, and a field like DOI among longer names is no language),, that are not allowed."""
     if isinstance(value, list):
         for i, v in enumerate(value):
             _langs(v, f"{path}{i}.", allowed, out)
     elif isinstance(value, dict):
-        if value and not level_map and all(k in LANG_CODES for k in value):
-            out += [f"{path.rstrip('.')}: language {k!r} is not in Study.LicenseLanguages" for k in value if k not in allowed]
+        if value and not level_map and not set(value) <= NON_LANGUAGE_KEYS and (
+            any(LANG.fullmatch(k) for k in value) or all(LOOSE_LANG.fullmatch(k) for k in value)
+        ):
+            where = path.rstrip(".")
+            for k in value:
+                if not LOOSE_LANG.fullmatch(k):
+                    out.append(f"{where}: mixed language object (key {k!r} next to language keys)")
+                elif k != k.lower():
+                    out.append(f"{where}: language key {k!r} must be lowercase")
+                elif k not in allowed:
+                    out.append(f"{where}: language {k!r} is not in Study.LicenseLanguages")
         for k, v in value.items():
             if not (path == "" and k in ("Technical", "I18n")):
                 # keys of a Levels map are level codes (a level 'no' is not a language)

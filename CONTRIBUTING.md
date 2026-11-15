@@ -178,6 +178,14 @@ Every template must also be bibliographically complete (rule g of `check_library
 list, `Study.Year` an integer and `Study.Citation` a real citation, never a placeholder such as "Official webpage".
 Put the primary citation in `Citation`, and further papers, manuals and sourcebook entries in `References`.
 
+## Recipes (`recipes/survey/`)
+
+A recipe of an instrument whose template ships in `library/survey/` (so its licence evidence passed
+`check_library.py`) may carry reverse-coding (`Transforms` with only `Invert`) and, per score, `Range`,
+`HigherMeans`, `Description` and `Note`, all in our own plain English. A recipe of any other instrument stays
+boilerplate: no `Transforms`, no `Note`. The tests check that a recipe agrees with its template (items exist,
+`Invert` items are scored items, the `Invert` scale and a sum `Range` follow the items' `MinValue` and `MaxValue`).
+
 ## Adding a mapping
 
 A mapping says what an ID is the same as or measures in another vocabulary. It never changes the data

@@ -39,3 +39,7 @@ decision. The licence of each test is always read from that test's page, never a
   the form (PDF) says 1 = stimme gar nicht zu, 7 = stimme voll zu, while the Testarchiv page text reads
   (1) stimme voll und ganz zu ... (7) stimme überhaupt nicht zu; the template gives only the two anchors of
   the form (`Study.Notes`), no scoring and no recipe until the scoring documentation has been read.
+* `survey-kse.json`: Kölner Skala zur Messung von Einsamkeit (KSE), CC BY-SA 4.0, the pilot of the import. Its
+  recipe `recipes/survey/recipe-kse.json` reverse-codes the ten positively worded items; the archive page and
+  documentation name the keying but print no numbered list, so the list follows the item wording and should be
+  confirmed with the authors.

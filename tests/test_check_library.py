@@ -286,7 +286,7 @@ def test_sbid_template_shape():
     assert "Reversed" not in SBID.read_text(encoding="utf-8")
     assert derived(SBID) == released("sbi-d") and len(derived(SBID)) == 24
     ids = (ROOT / "ids" / "survey-ids.txt").read_text(encoding="utf-8").split()
-    assert ids[-47:-22] == ["prism:sbi-d"] + [f"prism:sbi-d.sbid{i:02d}" for i in range(1, 25)]
+    assert {i for i in ids if i == "prism:sbi-d" or i.startswith("prism:sbi-d.")} == {"prism:sbi-d"} | {f"prism:sbi-d.sbid{i:02d}" for i in range(1, 25)}
 
 
 @pytest.mark.skipif(not SOURCE_SBID.is_file(), reason="local source file not available (CI)")

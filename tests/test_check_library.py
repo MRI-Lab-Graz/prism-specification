@@ -184,6 +184,13 @@ def test_reference_with_doi_field_is_not_a_language_object(tmp_path):
     assert problems(tmp_path, lambda d: d["Study"].update(References=[{"Type": "x", "Citation": "y", "DOI": "z"}])) == []
 
 
+def test_root_level_item_named_like_a_language_code_is_fine(tmp_path):
+    def f(d):
+        for k in ("age", "sex", "id", "bmi"):
+            d[k] = copy.deepcopy(d["X01"])
+    assert problems(tmp_path, f) == []
+
+
 def test_cli_exit_code(tmp_path):
     problems(tmp_path, lambda d: d["Study"].update(ItemCount=1))
     r = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_library.py"), "--repo", str(tmp_path)],

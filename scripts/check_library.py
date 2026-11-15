@@ -26,12 +26,12 @@ QUOTE = re.compile(r'["“][^"”]{10,}["”]')
 
 
 def _langs(value, path, allowed, out, level_map=False):
-    """Report language keys, in any dict below value with a lowercase 2-3 letter key, or only 2-3 letter keys (a pure {min, max} object is data, and a field like DOI among longer names is no language),, that are not allowed."""
+    """The root, each root-level block or item (keys are property names) is never a language object. Report language keys, in any dict below value with a lowercase 2-3 letter key, or only 2-3 letter keys (a pure {min, max} object is data, and a field like DOI among longer names is no language),, that are not allowed."""
     if isinstance(value, list):
         for i, v in enumerate(value):
             _langs(v, f"{path}{i}.", allowed, out)
     elif isinstance(value, dict):
-        if value and not level_map and not set(value) <= NON_LANGUAGE_KEYS and (
+        if value and not level_map and path.count(".") > 1 and not set(value) <= NON_LANGUAGE_KEYS and (
             any(LANG.fullmatch(k) for k in value) or all(LOOSE_LANG.fullmatch(k) for k in value)
         ):
             where = path.rstrip(".")

@@ -351,13 +351,36 @@ def test_english_with_german_title_and_names_passes(tmp_path):
     assert problems(tmp_path, _with("Description", t)) == []
 
 
-def test_heuristic_samples():
-    de = ["Die Skala wurde an einer Stichprobe von Studierenden validiert und zeigt eine gute Reliabilität.",
-          "Der Test ist für Kinder und Jugendliche geeignet.",
-          "Es handelt sich um ein Selbstbeurteilungsverfahren, das nicht von Experten ausgewertet werden muss.",
-          "Die Items wurden ins Deutsche übersetzt und überprüft."]
-    en = ["Scores range from 0 to 21 and higher scores indicate more severe symptoms.",
-          "The scale was validated in a sample of students and shows good reliability.",
-          "This version is intended for children and adolescents between 8 and 12 years."]
-    print([check_library.looks_german(t) for t in de], [check_library.looks_german(t) for t in en])
-    assert not any(check_library.looks_german(t) for t in en)
+SHORT_DE = [
+    "Die Skala wurde an einer Stichprobe von Studierenden validiert und zeigt eine gute Reliabilität.",
+    "Der Test ist für Kinder und Jugendliche geeignet.",
+    "Es handelt sich um ein Selbstbeurteilungsverfahren, das nicht von Experten ausgewertet werden muss.",
+    "Die Durchführung dauert etwa zehn Minuten und kann einzeln oder in der Gruppe erfolgen.",
+    "Der Gesamtwert wird durch Addition der Itemwerte berechnet, wobei die Items 3 und 7 umgepolt werden müssen.",
+    "Erwachsene", "Fragebogen", "Kinder und Jugendliche", "Selbstbeurteilung", "Fragebogen zur Erfassung von Angst",
+    "Dauer etwa 10 Minuten", "Für Erwachsene ab 18 Jahren", "Wird vom Testleiter vorgelesen",
+    "Nicht für den klinischen Einsatz geeignet", "Das Verfahren ist kostenlos und frei verfügbar",
+    "Auswertung mit Schablone oder am Computer", "Nur zur Forschung", "Selbstbeurteilung und Fremdbeurteilung",
+]
+SHORT_EN = [
+    "Adults", "Paper-pencil", "5 minutes", "Self-report questionnaire for adults", "Takes about ten minutes to complete.",
+    "Anxiety and depression in children", "Original German version", "Adapted from Bryant (2003).",
+    "German version of the Beck Depression Inventory", "Scores are summed; higher means more severe.",
+    "Items 3 and 7 are reverse coded.",     "Translated by two bilingual psychologists in Vienna.", "Online, in groups or individually", "Screening in primary care",
+    "Persönlichkeit", "Zürich", "Adolescents aged 12 to 18",
+]
+
+
+@pytest.mark.parametrize("t", SHORT_DE)
+def test_short_german_is_flagged(t):
+    assert check_library.looks_german(t), t
+
+
+@pytest.mark.parametrize("t", SHORT_EN)
+def test_short_english_is_not_flagged(t):
+    assert not check_library.looks_german(t), t
+
+
+def test_short_german_keyword_and_note_are_refused_in_a_template(tmp_path):
+    assert problems(tmp_path, _with("Keywords", ["anxiety", "Selbstbeurteilung"]))
+    assert problems(tmp_path, _with("Notes", "Der Test ist für Kinder und Jugendliche geeignet."))

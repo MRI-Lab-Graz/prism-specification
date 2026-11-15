@@ -33,7 +33,10 @@ ENGLISH_ONLY = ("{}: text looks German; descriptive metadata must be English "
 _DE = set("""der die das und nicht mit von zu den dem des ein eine einer eines ist sind wird werden wurde wurden auch
 für auf im als bei oder wie sich aus nach über durch bis zur zum ich wir sie es er sein ihre ihr dass wenn aber
 noch nur sehr mehr kann können hat haben fragebogen deren dieser diese dieses einem einen jedoch sowie wobei
-zwischen unter gegen ohne sowohl weil dabei hier""".split())
+zwischen unter gegen ohne sowohl weil dabei hier
+erwachsene kinder jugendliche selbstbeurteilung fremdbeurteilung forschung praxis testleiter einsatz verfahren
+dauer kostenlos verfügbar auswertung klinischen einzeln gruppe""".split())
+_DE_WEAK = {"minuten", "stunden", "jahre", "jahren", "etwa", "ca"}  # German only counts next to a real German word
 _EN = set("""the of and to in is are was were for with on as by that this these it its be or not from at which an a have
 has had can may such than also between into their they we our been being but if when where who whose while each
 both other more most only very over under after before through about""".split())
@@ -45,10 +48,13 @@ def looks_german(text: str) -> bool:
     """Cheap heuristic: German function words (and umlauts) clearly outweigh English ones. Not a language detector."""
     words = GERMAN_WORD.findall(text.lower())
     de = sum(w in _DE for w in words)
+    de += de and sum(w in _DE_WEAK for w in words)
     en = sum(w in _EN for w in words)
     umlauts = sum(text.lower().count(c) for c in "äöüß")
+    if len(words) <= 2:
+        return de >= 1 and en == 0
     if len(words) < 25:
-        return umlauts >= 2 and de >= 1
+        return (de >= 2 and en == 0) or (de >= 3 and de >= 2 * en) or (umlauts >= 2 and de >= 1)
     return (de >= 3 and de > 1.5 * en) or (de >= 3 and de >= en and umlauts * 100 / len(words) >= 3)
 
 

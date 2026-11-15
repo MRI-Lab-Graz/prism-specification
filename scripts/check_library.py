@@ -6,8 +6,10 @@ Rules: (a) Study.License quotes the rights holder, (b) Study.Source is an absolu
 (c) Study.LicenseChecked is YYYY-MM-DD, (d) Study.LicenseTerms is a list of short strings,
 (e) only languages named in Study.LicenseLanguages, (e2) descriptive Study metadata (Description, Notes,
 LicenseTerms, ...) is English: other languages only in items, Levels, Instructions, OriginalName, bibliographic
-data and the quoted Study.License evidence, (f) no Study.ItemCount, Study.Subscales or item Reversed, (g) bibliographic completeness: Study.Authors is a
-non-empty list, Study.Year an integer and Study.Citation a real citation (not the placeholder "Official webpage").
+data, the quoted Study.License evidence and the instruction and bibliographic sections of
+ArchiveMetadata (ARCHIVE_TEXT_EXEMPT), (f) no Study.ItemCount, Study.Subscales or item Reversed, (g) bibliographic
+completeness: Study.Authors is a non-empty list, Study.Year an integer and Study.Citation a real citation (not the
+placeholder "Official webpage").
 """
 
 from __future__ import annotations
@@ -29,6 +31,11 @@ NON_LANGUAGE_KEYS = {"min", "max"}  # AdministrationTime / ScoringTime / AgeRang
 ENGLISH_FIELDS = ("Description", "Construct", "Reliability", "Validity", "Norming", "Notes", "PermissionsNote",
                   "RecallPeriod", "Keywords", "LicenseTerms", "ArchiveMetadata", "AdministrationTime",
                   "ScoringTime", "AgeRange")
+# Open Test Archive imports keep these ArchiveMetadata sections as quoted: the instruction to respondents and
+# test administrators is instrument text (like Study.Instructions), the other three are bibliographic data (like
+# Study.References). Keys are compared exactly; every other section, field or nested text stays English.
+ARCHIVE_TEXT_EXEMPT = frozenset({"Durchführung/Instruktion", "Wichtige neuere Publikationen", "Rezensionen",
+                                 "Orginalfassung/Anderssprachlige Fassungen"})
 ENGLISH_ONLY = ("{}: text looks German; descriptive metadata must be English "
                 "(items, instructions and the original name may be in another language)")
 _DE = set("""der die das und nicht mit von zu den dem des ein eine einer eines ist sind wird werden wurde wurden auch
@@ -72,9 +79,12 @@ def _strings(value, label):
 
 
 def english_problems(study: dict) -> list[str]:
+    """Descriptive Study metadata must be English, except the ARCHIVE_TEXT_EXEMPT sections of ArchiveMetadata."""
     out = []
     for field in ENGLISH_FIELDS:
         value, label = study.get(field), f"Study.{field}"
+        if field == "ArchiveMetadata" and isinstance(value, dict) and isinstance(value.get("sections"), dict):
+            value = {**value, "sections": {k: v for k, v in value["sections"].items() if k not in ARCHIVE_TEXT_EXEMPT}}
         if isinstance(value, dict) and field != "ArchiveMetadata":
             # an object form may only be {"en": ...}; {min, max} numbers are data
             for k, v in value.items():

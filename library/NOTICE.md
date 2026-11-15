@@ -15,7 +15,10 @@ ITS OWN terms, which are stated in the template and are set by the rights holder
 * Descriptive metadata (description, notes, reliability, validity, norming, keywords, licence terms, archive
   metadata) is always English, whatever the language of the instrument. Only the instrument's own text (items,
   response levels, instructions, original name), bibliographic data and the quoted licence statement stay in the
-  original language.
+  original language. Four sections of the imported archive metadata are kept as quoted for the same reason:
+  the instruction to respondents and test administrators (`Durchführung/Instruktion`) is instrument text, and
+  `Wichtige neuere Publikationen`, `Rezensionen` and `Orginalfassung/Anderssprachlige Fassungen` are
+  bibliographic data. All other archive metadata is English.
 * Every template names its authors, its year and a real citation (`Study.Authors`, `Study.Year`,
   `Study.Citation`); `scripts/check_library.py` refuses a placeholder such as "Official webpage".
 * If you hold rights to an instrument and want it removed, write to

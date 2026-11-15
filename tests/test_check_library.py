@@ -421,3 +421,41 @@ def test_short_english_is_not_flagged(t):
 def test_short_german_keyword_and_note_are_refused_in_a_template(tmp_path):
     assert problems(tmp_path, _with("Keywords", ["anxiety", "Selbstbeurteilung"]))
     assert problems(tmp_path, _with("Notes", "Der Test ist für Kinder und Jugendliche geeignet."))
+
+
+ARCHIVE_EXEMPT = ["Durchführung/Instruktion", "Wichtige neuere Publikationen", "Rezensionen",
+                  "Orginalfassung/Anderssprachlige Fassungen"]
+
+
+def _archive(section_or_field, key, text=None):
+    text = text or DE_TEXTS[0]
+    return _with("ArchiveMetadata", {section_or_field: {key: [text]}})
+
+
+@pytest.mark.parametrize("key", ARCHIVE_EXEMPT)
+def test_german_in_exempt_archive_sections_passes(tmp_path, key):
+    assert problems(tmp_path, _archive("sections", key)) == []
+    assert problems(tmp_path, _archive("sections", key, DE_TEXTS[1])) == []
+
+
+@pytest.mark.parametrize("section,key", [
+    ("sections", "Kurzabstract"), ("sections", "Testkonzept/Theoretischer Hintergrund"),
+    ("fields", "Reliabilität"), ("fields", "Durchführung/Instruktion"),
+    ("sections", "Durchführung/Instruktion (Entwurf)"), ("sections", "Rezensionen und mehr"),
+    ("other", "Rezensionen"),
+])
+def test_german_elsewhere_in_archive_metadata_is_refused(tmp_path, section, key):
+    assert problems(tmp_path, _archive(section, key))
+
+
+def test_exempt_archive_section_does_not_hide_a_sibling(tmp_path):
+    out = problems(tmp_path, _with("ArchiveMetadata", {"sections": {"Rezensionen": [DE_TEXTS[0]],
+                                                                    "Kurzabstract": [DE_TEXTS[1]]}}))
+    assert len(out) == 1
+
+
+def test_german_description_still_refused_next_to_exempt_sections(tmp_path):
+    def f(d):
+        d["Study"]["ArchiveMetadata"] = {"sections": {"Rezensionen": [DE_TEXTS[0]]}}
+        d["Study"]["Description"] = DE_TEXTS[0]
+    assert problems(tmp_path, f)

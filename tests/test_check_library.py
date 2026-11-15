@@ -141,6 +141,25 @@ def test_german_key_in_english_template_is_refused(tmp_path):
     assert problems(tmp_path, lambda d: d["X01"]["Description"].update(de="Punkt"))
 
 
+@pytest.mark.parametrize("key,val", [
+    ("AdministrationTime", {"min": 5, "max": 10}),
+    ("ScoringTime", {"min": 5, "max": 10}),
+    ("AgeRange", {"min": 18, "max": 65}),
+    ("AgeRange", {"max": 1}),
+])
+def test_min_max_objects_are_not_language_objects(tmp_path, key, val):
+    assert problems(tmp_path, lambda d: d["Study"].update({key: val})) == []
+
+
+def test_levels_map_with_no_key_passes(tmp_path):
+    assert problems(tmp_path, lambda d: d["X01"].update(Levels={"no": "Nein", "yes": "Ja"})) == []
+
+
+@pytest.mark.parametrize("val", [{"de": "Punkt"}, {"en": "a", "de": "b"}, {"deu": "x"}])
+def test_real_language_objects_outside_license_are_refused(tmp_path, val):
+    assert problems(tmp_path, lambda d: d["X01"].update(Description=val))
+
+
 def test_cli_exit_code(tmp_path):
     problems(tmp_path, lambda d: d["Study"].update(ItemCount=1))
     r = subprocess.run([sys.executable, str(ROOT / "scripts" / "check_library.py"), "--repo", str(tmp_path)],

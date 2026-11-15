@@ -26,6 +26,9 @@ GOOD = {
         "LicenseChecked": "2026-11-14",
         "LicenseTerms": ["Do not sell."],
         "LicenseLanguages": ["en"],
+        "Authors": ["Doe, J."],
+        "Year": 2020,
+        "Citation": "Doe, J. (2020). X.",
     },
     "X01": {"Description": {"en": "Item"}, "Levels": {"0": {"en": "No"}}},
 }
@@ -63,9 +66,15 @@ def test_good_template_passes(tmp_path):
         lambda d: d["Study"].update(ItemCount=1),  # f
         lambda d: d["Study"].update(Subscales={}),  # f
         lambda d: d["X01"].update(Reversed=False),  # f
+        lambda d: d["Study"].update(Authors=[]),  # g
+        lambda d: d["Study"].update(Year=None),  # g
+        lambda d: d["Study"].update(Year="1995"),  # g
+        lambda d: d["Study"].update(Citation="Official webpage"),  # g
+        lambda d: d["Study"].pop("Citation"),  # g
     ],
     ids=["a", "b", "c", "d-str", "d-empty", "e-levels", "e-name", "e-missing", "e-empty", "e-badcode",
-         "e-notlist", "e-technical", "e-i18n", "e-license", "f-itemcount", "f-subscales", "f-reversed"],
+         "e-notlist", "e-technical", "e-i18n", "e-license", "f-itemcount", "f-subscales", "f-reversed",
+         "g-authors", "g-year", "g-year-str", "g-placeholder", "g-citation"],
 )
 def test_each_rule_refuses_and_names_the_file(tmp_path, mutate):
     out = problems(tmp_path, mutate)
@@ -230,6 +239,34 @@ def test_real_template(task):
     assert data["Study"]["Source"] == {"demo": "https://github.com/MRI-Lab-Graz/prism-specification"}.get(task, "https://www2.psy.unsw.edu.au/dass/")
     assert data["Study"]["LicenseChecked"] == "2026-11-14"
     assert data["I18n"]["Languages"] == ["en"]
+
+
+DASS_ITEMS_SHA256 = {  # sha256 of the items block (sorted-key JSON) at the commit before the metadata fix
+    "dass": "174e18ee277cc40b07c202865fba79d2e743cac08f0059291b0e7b4d834c6f48",
+    "dass21": "25ef2599f97c08524c0b8b30a8b6962dee27b218031173d5674703c906adf197",
+}
+
+
+@pytest.mark.parametrize("task", ["dass", "dass21"])
+def test_dass_bibliographic_metadata(task):
+    import hashlib
+
+    data = json.loads((LIB / f"survey-{task}.json").read_text(encoding="utf-8"))
+    study = data["Study"]
+    assert study["Authors"] == ["Lovibond, S. H.", "Lovibond, P. F."]
+    assert study["Year"] == 1995
+    assert study["Citation"] != "Official webpage" and "Lovibond" in study["Citation"]
+    assert len(study["References"]) >= 2 and study["References"][0]["Type"] == "primary"
+    assert study["DOI"] == ""
+    items = {k: v for k, v in data.items() if k not in ("Technical", "Metadata", "I18n", "Study")}
+    blob = json.dumps(items, sort_keys=True, ensure_ascii=False).encode()
+    assert hashlib.sha256(blob).hexdigest() == DASS_ITEMS_SHA256[task]
+
+
+@pytest.mark.parametrize("path", sorted(LIB.glob("*.json")), ids=lambda p: p.stem)
+def test_every_shipped_template_is_bibliographically_complete(path):
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert not [p for p in check_library.template_problems(data) if "Authors" in p or "Year" in p or "Citation" in p]
 
 
 SBID = LIB / "survey-sbi-d.json"

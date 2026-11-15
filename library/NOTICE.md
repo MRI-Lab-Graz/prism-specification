@@ -16,6 +16,8 @@ ITS OWN terms, which are stated in the template and are set by the rights holder
   metadata) is always English, whatever the language of the instrument. Only the instrument's own text (items,
   response levels, instructions, original name), bibliographic data and the quoted licence statement stay in the
   original language.
+* Every template names its authors, its year and a real citation (`Study.Authors`, `Study.Year`,
+  `Study.Citation`); `scripts/check_library.py` refuses a placeholder such as "Official webpage".
 * If you hold rights to an instrument and want it removed, write to
   <contact address to be set by the maintainers>.
 * This folder is excluded from the CC BY 4.0 grant of this repository (see LICENSE). The rest of

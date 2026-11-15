@@ -169,6 +169,10 @@ instrument's own text may be in another language: the items' `Description` and `
 statement in `Study.License`. CI runs a rough check that flags German descriptive text; it is a heuristic, so
 translate the text rather than trying to get around it.
 
+Every template must also be bibliographically complete (rule g of `check_library.py`): `Study.Authors` a non-empty
+list, `Study.Year` an integer and `Study.Citation` a real citation, never a placeholder such as "Official webpage".
+Put the primary citation in `Citation`, and further papers, manuals and sourcebook entries in `References`.
+
 ## Adding a mapping
 
 A mapping says what an ID is the same as or measures in another vocabulary. It never changes the data

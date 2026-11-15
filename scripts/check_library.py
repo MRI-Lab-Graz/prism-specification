@@ -6,7 +6,8 @@ Rules: (a) Study.License quotes the rights holder, (b) Study.Source is an absolu
 (c) Study.LicenseChecked is YYYY-MM-DD, (d) Study.LicenseTerms is a list of short strings,
 (e) only languages named in Study.LicenseLanguages, (e2) descriptive Study metadata (Description, Notes,
 LicenseTerms, ...) is English: other languages only in items, Levels, Instructions, OriginalName, bibliographic
-data and the quoted Study.License evidence, (f) no Study.ItemCount, Study.Subscales or item Reversed.
+data and the quoted Study.License evidence, (f) no Study.ItemCount, Study.Subscales or item Reversed, (g) bibliographic completeness: Study.Authors is a
+non-empty list, Study.Year an integer and Study.Citation a real citation (not the placeholder "Official webpage").
 """
 
 from __future__ import annotations
@@ -153,6 +154,14 @@ def template_problems(data: dict) -> list[str]:
     out += [f"language {x!r} is not in Study.LicenseLanguages" for x in used if x not in langs]
     _langs(data, "", langs, out)
     out += english_problems(study)
+    if not (isinstance(study.get("Authors"), list) and study["Authors"]):
+        out.append("Study.Authors must be a non-empty list")
+    year = study.get("Year")
+    if not (isinstance(year, int) and not isinstance(year, bool)):
+        out.append("Study.Year must be an integer")
+    cit = study.get("Citation")
+    if not (isinstance(cit, str) and cit.strip() and cit.strip().lower() != "official webpage"):
+        out.append("Study.Citation must be a real citation, not empty or 'Official webpage'")
     for key in ("ItemCount", "Subscales"):
         if key in study:
             out.append(f"Study.{key} must not be set")

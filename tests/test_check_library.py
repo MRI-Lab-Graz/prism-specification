@@ -518,3 +518,13 @@ def test_shipped_templates_pass_the_library_check():
     assert check_library.check(ROOT) == []
     assert {p.name for p in LIB.glob("survey-*.json")} >= {"survey-dass.json", "survey-dass21.json", "survey-demo.json",
                                                             "survey-sbi-d.json", "survey-kse.json"}
+
+
+def test_archive_templates_state_who_holds_which_rights():
+    archive = [d for d in (json.loads(p.read_text(encoding="utf-8")) for p in LIB.glob("survey-*.json"))
+               if "testarchiv.eu" in json.dumps(d["Study"].get("LicenseTerms", []))]
+    assert len(archive) >= 20
+    for d in archive:
+        terms = " ".join(d["Study"]["LicenseTerms"])
+        assert "authors of this version" in terms and "original instrument" in terms and "not covered" in terms, d["Study"]["TaskName"]
+        assert d["Study"]["LicenseLanguages"] == ["de"], d["Study"]["TaskName"]

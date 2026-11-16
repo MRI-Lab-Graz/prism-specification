@@ -18,7 +18,9 @@ SCHEMA_SHA256 = "6875a1da1a84b495ab866abdfdabd35c8c1602eef8636149290c12a54b1661e
 ID_RE = re.compile(r"^prism:[a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)*$")
 
 # demo and kse are written here; dass and dass21 carry a Range corrected to their template (0-3 items)
-WRITTEN_HERE = {"recipe-demo.json", "recipe-kse.json", "recipe-dass.json", "recipe-dass21.json"}
+# Open Test Archive batch 1: recipes written here from the archive pages (templates ship in library/)
+ARCHIVE_RECIPES = ["csip", "dass-de", "ebi-am", "ecr-g-10", "efk", "icg-d", "lshs-g", "pdi", "pted-skala", "stars-d", "tsi-ger-13", "tsi-ger-4"]
+WRITTEN_HERE = {"recipe-demo.json", "recipe-kse.json", "recipe-dass.json", "recipe-dass21.json", *(f"recipe-{t}.json" for t in ARCHIVE_RECIPES)}
 
 need_source = pytest.mark.skipif(not SRC_RECIPES.is_dir(), reason=f"source copy {SRC_RECIPES} is missing")
 
@@ -190,7 +192,7 @@ def test_shipped_recipes_are_exactly_the_passing_ones():
     passing = {n for n, r in src.items() if is_boilerplate(r)}
     assert len(passing) == 100
     assert set(src) - passing == HELD
-    shipped = {p.name for p in _shipped()} - {"recipe-demo.json", "recipe-kse.json"}  # written here, not copied
+    shipped = {p.name for p in _shipped()} - {n for n in WRITTEN_HERE if n not in ("recipe-dass.json", "recipe-dass21.json")}  # written here, not copied
     assert len(shipped) == 100
     assert shipped == passing == set(src) - HELD
     for p in _shipped():
@@ -207,7 +209,7 @@ def test_boilerplate_fails_for_each_held_recipe():
 
 
 def test_shipped_recipes_pass_boilerplate_test():
-    assert len(_shipped()) == 102
+    assert len(_shipped()) == 114
     for p in _shipped():
         assert is_boilerplate(json.loads(p.read_text(encoding="utf-8"))), p.name
 
@@ -224,11 +226,13 @@ def _ids():
 
 def test_ids_list():
     ids = _ids()
-    assert len(ids) == 1478 + 1 + 8 + 2 + 25 + 1 + 20 + 1
+    assert len(ids) == 1478 + 1 + 8 + 2 + 25 + 1 + 20 + 1 + 686 + 52  # + Open Test Archive batch 1 (templates + recipe scores)
     assert all(ID_RE.match(i) for i in ids)
     assert len(set(ids)) == len(ids)
-    if SRC_IDS.is_file():  # the released list only grew by the demo's, SBI-d's and KSE's lines
-        assert [i for i in ids if i not in ("prism:demo", "prism:sbi-d", "prism:kse") and not i.startswith(("prism:demo.", "prism:sbi-d.", "prism:kse."))] == SRC_IDS.read_text(encoding="utf-8").splitlines()
+    if SRC_IDS.is_file():  # the released list only grew by the IDs of the instruments written here (demo, SBI-d, archive batches)
+        src = SRC_IDS.read_text(encoding="utf-8").splitlines()
+        new_heads = {f"prism:{t}" for t in _shipped_tasks()} - {i.split(".")[0] for i in src}
+        assert [i for i in ids if i.split(".")[0] not in new_heads] == src
     readme = (ROOT / "ids" / "README.md").read_text(encoding="utf-8")
     assert "frozen" in readme.lower()
 
@@ -258,7 +262,7 @@ def test_recipe_schema_1_0_0_is_the_studio_file():
 
 def test_shipped_recipes_validate_against_the_schema():
     validator = Draft7Validator(json.loads((ROOT / "schemas/stable/recipe.survey.schema.json").read_text(encoding="utf-8")))
-    assert len(_shipped()) == 102
+    assert len(_shipped()) == 114
     for p in _shipped():
         errors = list(validator.iter_errors(json.loads(p.read_text(encoding="utf-8"))))
         assert not errors, (p.name, errors[0].message)
@@ -300,3 +304,15 @@ def test_generate_schema_reference_knows_recipe_survey():
     mod = __import__("importlib.util").util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     assert "recipe.survey" in mod.OTHER_DOCS
+
+
+def test_archive_batch1_recipes_say_what_they_know_about_reverse_coding():
+    """A reverse-coded item list is only written when the archive text names the items; otherwise the recipe says so."""
+    for task in ARCHIVE_RECIPES:
+        recipe = json.loads((ROOT / f"recipes/survey/recipe-{task}.json").read_text(encoding="utf-8"))
+        assert recipe["Survey"]["TaskName"] == task
+        if "Transforms" not in recipe:
+            notes = " ".join(s.get("Note", "") for s in recipe["Scores"])
+            assert "reverse" in notes and "archive documentation" in notes, task
+    for task in ("cpaq-d", "esrd-scl-tm", "febo", "bfas-g", "pmerq"):  # held back: decision or scoring data missing
+        assert not (ROOT / f"recipes/survey/recipe-{task}.json").exists(), task

@@ -1,0 +1,66 @@
+{
+  "RecipeVersion": "1.0",
+  "Kind": "survey",
+  "Survey": {
+    "Name": "DASS-DE",
+    "Reference": "survey-dass-de.json",
+    "TaskName": "dass-de"
+  },
+  "Scores": [
+    {
+      "Name": "Depression",
+      "Description": "Sum of the 7 depression items",
+      "Items": [
+        "DASS03",
+        "DASS05",
+        "DASS10",
+        "DASS13",
+        "DASS16",
+        "DASS17",
+        "DASS21"
+      ],
+      "Method": "sum",
+      "Range": {
+        "min": 0,
+        "max": 21
+      },
+      "Note": "The archive documentation states that no item needs reverse-coding."
+    },
+    {
+      "Name": "Anxiety",
+      "Description": "Sum of the 7 anxiety items",
+      "Items": [
+        "DASS02",
+        "DASS04",
+        "DASS07",
+        "DASS09",
+        "DASS15",
+        "DASS19",
+        "DASS20"
+      ],
+      "Method": "sum",
+      "Range": {
+        "min": 0,
+        "max": 21
+      }
+    },
+    {
+      "Name": "Stress",
+      "Description": "Sum of the 7 stress items",
+      "Items": [
+        "DASS01",
+        "DASS06",
+        "DASS08",
+        "DASS11",
+        "DASS12",
+        "DASS14",
+        "DASS18"
+      ],
+      "Method": "sum",
+      "Range": {
+        "min": 0,
+        "max": 21
+      }
+    }
+  ]
+}

@@ -235,10 +235,11 @@ def test_real_template(task):
     errs = [e.message for e in Draft7Validator(schema).iter_errors(data)
             if not any(f"'{f}' is a required property" in e.message for f in project_only)]
     assert errs == []
-    assert not re.search(r'"(?!en")[a-z]{2}"\s*:\s*"', text)  # no other language key
+    other = r'"(?!en")[a-z]{2}"\s*:\s*"' if task != "dass21" else r'"(?!en"|de")[a-z]{2}"\s*:\s*"'
+    assert not re.search(other, text)  # no other language key (dass21 also carries the German version)
     assert data["Study"]["Source"] == {"demo": "https://github.com/MRI-Lab-Graz/prism-specification"}.get(task, "https://www2.psy.unsw.edu.au/dass/")
     assert data["Study"]["LicenseChecked"] == "2026-11-14"
-    assert data["I18n"]["Languages"] == ["en"]
+    assert data["I18n"]["Languages"] == (["en", "de"] if task == "dass21" else ["en"])
 
 
 DASS_ITEMS_SHA256 = {  # sha256 of the items block (sorted-key JSON) at the commit before the metadata fix
@@ -259,6 +260,12 @@ def test_dass_bibliographic_metadata(task):
     assert len(study["References"]) >= 2 and study["References"][0]["Type"] == "primary"
     assert study["DOI"] == ""
     items = {k: v for k, v in data.items() if k not in ("Technical", "Metadata", "I18n", "Study")}
+    if task == "dass21":  # the English text is unchanged: strip the German next to it
+        def english(v):
+            if isinstance(v, dict):
+                return english(v["en"]) if "en" in v and set(v) == {"en", "de"} else {k: english(x) for k, x in v.items()}
+            return v
+        items = english(items)
     blob = json.dumps(items, sort_keys=True, ensure_ascii=False).encode()
     assert hashlib.sha256(blob).hexdigest() == DASS_ITEMS_SHA256[task]
 
@@ -612,3 +619,37 @@ def test_licence_by_language_must_be_a_map_of_entries(tmp_path, value):
         bilingual(d)
         d["Study"]["LicenseByLanguage"] = value
     assert any("LicenseByLanguage" in p for p in problems(tmp_path, f))
+
+
+def test_dass21_carries_the_german_version_and_dass_de_is_gone():
+    d = json.loads((LIB / "survey-dass21.json").read_text(encoding="utf-8"))
+    assert not (LIB / "survey-dass-de.json").exists()
+    assert d["I18n"]["Languages"] == ["en", "de"] and d["Study"]["LicenseLanguages"] == ["en", "de"]
+    items = [k for k in d if k.startswith("DASS21")]
+    assert len(items) == 21
+    for k in items:
+        assert set(d[k]["Description"]) == {"en", "de"} and d[k]["Description"]["de"].strip()
+        assert set(d[k]["Levels"]["0"]) == {"en", "de"} and d[k]["Levels"]["3"]["de"].startswith("Traf sehr stark")
+    assert d["DASS2101"]["Description"]["de"] == "Ich fand es schwer, mich zu beruhigen."
+    assert d["DASS2121"]["Description"]["de"] == "Ich empfand das Leben als sinnlos."
+    assert d["DASS2108"]["Description"]["de"] == "Ich fand alles anstrengend."
+    assert set(d["Study"]["Instructions"]) == {"en", "de"}
+    study = d["Study"]
+    assert "Public domain" not in study["License"] and "public domain" in study["License"]  # template level stays English
+    de = study["LicenseByLanguage"]["de"]
+    assert de["LicenseID"] == "CC-BY-SA-4.0" and de["LicenseChecked"] == "2026-11-14"
+    assert "authors of this version" in " ".join(de["LicenseTerms"]) and "not covered" in " ".join(de["LicenseTerms"])
+    assert "item 8" in study["Notes"].lower()
+    assert any("Nilges" in r["Citation"] for r in study["References"])
+    assert not [p for p in check_library.template_problems(d)]
+
+
+def test_no_two_library_templates_share_an_item_key():
+    # the Studio converter refuses duplicate item IDs across templates
+    seen = {}
+    for p in sorted(LIB.glob("survey-*.json")):
+        d = json.loads(p.read_text(encoding="utf-8"))
+        for k, v in d.items():
+            if k not in check_library.NON_ITEMS and isinstance(v, dict):
+                assert k not in seen, f"item key {k} is in both {seen[k]} and {p.name}"
+                seen[k] = p.name

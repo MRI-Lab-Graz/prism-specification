@@ -224,11 +224,13 @@ def _ids():
 
 def test_ids_list():
     ids = _ids()
-    assert len(ids) == 1478 + 1 + 8 + 2 + 25 + 1 + 20 + 1
+    assert len(ids) == 1478 + 1 + 8 + 2 + 25 + 1 + 20 + 1 + 686  # + Open Test Archive batch 1
     assert all(ID_RE.match(i) for i in ids)
     assert len(set(ids)) == len(ids)
-    if SRC_IDS.is_file():  # the released list only grew by the demo's, SBI-d's and KSE's lines
-        assert [i for i in ids if i not in ("prism:demo", "prism:sbi-d", "prism:kse") and not i.startswith(("prism:demo.", "prism:sbi-d.", "prism:kse."))] == SRC_IDS.read_text(encoding="utf-8").splitlines()
+    if SRC_IDS.is_file():  # the released list only grew by the IDs of the instruments written here (demo, SBI-d, archive batches)
+        src = SRC_IDS.read_text(encoding="utf-8").splitlines()
+        new_heads = {f"prism:{t}" for t in _shipped_tasks()} - {i.split(".")[0] for i in src}
+        assert [i for i in ids if i.split(".")[0] not in new_heads] == src
     readme = (ROOT / "ids" / "README.md").read_text(encoding="utf-8")
     assert "frozen" in readme.lower()
 

@@ -19,6 +19,9 @@ ITS OWN terms, which are stated in the template and are set by the rights holder
   the instruction to respondents and test administrators (`Durchführung/Instruktion`) is instrument text, and
   `Wichtige neuere Publikationen`, `Rezensionen` and `Orginalfassung/Anderssprachlige Fassungen` are
   bibliographic data. All other archive metadata is English.
+* No text-extraction artefacts: a template holds no Latin ligature characters (such as the single character for
+  "fi"), soft hyphens or zero-width characters in any string; `scripts/check_library.py` (rule h) names the field and
+  the character. Normal umlauts, ss, quotes and the ellipsis are fine.
 * Every template names its authors, its year and a real citation (`Study.Authors`, `Study.Year`,
   `Study.Citation`); `scripts/check_library.py` refuses a placeholder such as "Official webpage".
 * If you hold rights to an instrument and want it removed, write to

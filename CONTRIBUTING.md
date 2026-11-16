@@ -174,6 +174,10 @@ respondents and test administrators, instrument text like `Study.Instructions`) 
 (such as a quoted German definition) is not counted, a longer quoted passage is. It is a heuristic, so
 translate the text rather than trying to get around it.
 
+No string of a template may hold text-extraction artefacts (rule h of `check_library.py`): Latin ligature characters
+(U+FB00-FB06, e.g. the single character for "fi" copied from a PDF), the soft hyphen (U+00AD) or zero-width characters
+(U+200B-U+200D, U+FEFF). Write the plain letters; umlauts, ss, quotes and the ellipsis are fine.
+
 Every template must also be bibliographically complete (rule g of `check_library.py`): `Study.Authors` a non-empty
 list, `Study.Year` an integer and `Study.Citation` a real citation, never a placeholder such as "Official webpage".
 Put the primary citation in `Citation`, and further papers, manuals and sourcebook entries in `References`.

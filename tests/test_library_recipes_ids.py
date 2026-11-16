@@ -32,10 +32,17 @@ def _shipped_tasks() -> set:
     return {(json.loads(p.read_text(encoding="utf-8")).get("Study") or {}).get("TaskName") for p in (ROOT / "library" / "survey").glob("survey-*.json")}
 
 
+def _invert_ok(invert) -> bool:
+    return isinstance(invert, dict) and isinstance(invert.get("Items"), list) and bool(invert["Items"])
+
+
 def is_boilerplate(recipe: dict, shipped=None) -> bool:
     """Boilerplate only; a recipe whose template ships here may also carry Invert transforms and a score Note."""
     shipped = _shipped_tasks() if shipped is None else shipped
-    own = (recipe.get("Survey") or {}).get("TaskName") in shipped
+    task = (recipe.get("Survey") or {}).get("TaskName")
+    if task is not None and not isinstance(task, str):
+        return False
+    own = task in shipped
     usage = recipe.get("Usage") or {}
     scoring = _en(usage.get("ScoringGuidelines"))
     interp = _en(usage.get("InterpretationGuidelines"))
@@ -48,7 +55,7 @@ def is_boilerplate(recipe: dict, shipped=None) -> bool:
     if any(k in recipe for k in ("References", "VersionedScores")):
         return False
     transforms = recipe.get("Transforms")
-    if "Transforms" in recipe and not (own and isinstance(transforms, dict) and set(transforms) == {"Invert"}):
+    if "Transforms" in recipe and not (own and isinstance(transforms, dict) and set(transforms) == {"Invert"} and _invert_ok(transforms["Invert"])):
         return False
     for score in recipe.get("Scores") or []:
         if ("Note" in score and not own) or not isinstance(score.get("Description", ""), str):
@@ -103,6 +110,13 @@ def test_transforms_and_note_only_when_the_template_ships():
     assert not is_boilerplate({**base, "Transforms": {}}, shipped)
     assert not is_boilerplate({**base, "Survey": {}, "Transforms": invert}, shipped)
     assert is_boilerplate(json.loads((ROOT / "recipes/survey/recipe-kse.json").read_text(encoding="utf-8")))
+
+
+def test_is_boilerplate_does_not_raise_on_malformed_recipes():
+    assert not is_boilerplate({"Survey": {"TaskName": ["kse"]}, "Scores": []}, {"kse"})
+    assert not is_boilerplate({"Survey": {"TaskName": {"a": 1}}, "Scores": []}, {"kse"})
+    assert not is_boilerplate({"Survey": {"TaskName": "kse"}, "Transforms": {"Invert": []}, "Scores": []}, {"kse"})
+    assert not is_boilerplate({"Survey": {"TaskName": "kse"}, "Transforms": {"Invert": {"Items": [], "Scale": {"min": 1, "max": 4}}}, "Scores": []}, {"kse"})
 
 
 def test_kse_template_is_the_archive_copy():

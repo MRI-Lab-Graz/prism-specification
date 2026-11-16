@@ -235,10 +235,11 @@ def test_real_template(task):
     errs = [e.message for e in Draft7Validator(schema).iter_errors(data)
             if not any(f"'{f}' is a required property" in e.message for f in project_only)]
     assert errs == []
-    assert not re.search(r'"(?!en")[a-z]{2}"\s*:\s*"', text)  # no other language key
+    other = r'"(?!en")[a-z]{2}"\s*:\s*"' if task != "dass21" else r'"(?!en"|de")[a-z]{2}"\s*:\s*"'
+    assert not re.search(other, text)  # no other language key (dass21 also carries the German version)
     assert data["Study"]["Source"] == {"demo": "https://github.com/MRI-Lab-Graz/prism-specification"}.get(task, "https://www2.psy.unsw.edu.au/dass/")
     assert data["Study"]["LicenseChecked"] == "2026-11-14"
-    assert data["I18n"]["Languages"] == ["en"]
+    assert data["I18n"]["Languages"] == (["en", "de"] if task == "dass21" else ["en"])
 
 
 DASS_ITEMS_SHA256 = {  # sha256 of the items block (sorted-key JSON) at the commit before the metadata fix
@@ -259,6 +260,12 @@ def test_dass_bibliographic_metadata(task):
     assert len(study["References"]) >= 2 and study["References"][0]["Type"] == "primary"
     assert study["DOI"] == ""
     items = {k: v for k, v in data.items() if k not in ("Technical", "Metadata", "I18n", "Study")}
+    if task == "dass21":  # the English text is unchanged: strip the German next to it
+        def english(v):
+            if isinstance(v, dict):
+                return english(v["en"]) if "en" in v and set(v) == {"en", "de"} else {k: english(x) for k, x in v.items()}
+            return v
+        items = english(items)
     blob = json.dumps(items, sort_keys=True, ensure_ascii=False).encode()
     assert hashlib.sha256(blob).hexdigest() == DASS_ITEMS_SHA256[task]
 
@@ -528,3 +535,121 @@ def test_archive_templates_state_who_holds_which_rights():
         terms = " ".join(d["Study"]["LicenseTerms"])
         assert "authors of this version" in terms and "original instrument" in terms and "not covered" in terms, d["Study"]["TaskName"]
         assert d["Study"]["LicenseLanguages"] == ["de"], d["Study"]["TaskName"]
+
+
+# --- Study.LicenseByLanguage: a per-language licence entry overrides the template-level one for that language ---
+
+DE_ENTRY = {
+    "License": '"Copyright Autor(-Innen); CC-BY-SA 4.0" "Die Nutzung ist erlaubt."',
+    "LicenseID": "CC-BY-SA-4.0",
+    "Source": "https://example.org/de",
+    "LicenseChecked": "2026-11-14",
+    "LicenseTerms": ["Released under CC BY-SA 4.0."],
+}
+
+
+def bilingual(d):
+    d["I18n"]["Languages"] = ["en", "de"]
+    d["Study"]["LicenseLanguages"] = ["en", "de"]
+    d["Study"]["LicenseByLanguage"] = {"de": copy.deepcopy(DE_ENTRY)}
+    d["X01"]["Description"]["de"] = "Punkt"
+
+
+def test_bilingual_template_with_a_german_entry_passes(tmp_path):
+    assert problems(tmp_path, bilingual) == []
+
+
+def test_template_level_licence_covers_languages_without_an_entry(tmp_path):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseLanguages"] = ["en", "de", "fr"]
+        d["Study"]["LicenseByLanguage"] = {}
+    assert problems(tmp_path, f) == []
+
+
+def test_every_language_with_its_own_entry_needs_no_template_level_licence(tmp_path):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseByLanguage"]["en"] = {**DE_ENTRY, "License": '"Free to copy as stated."'}
+        for k in ("License", "Source", "LicenseChecked", "LicenseTerms"):
+            del d["Study"][k]
+    assert problems(tmp_path, f) == []
+
+
+def test_missing_template_licence_is_refused_for_a_language_without_an_entry(tmp_path):
+    def f(d):
+        bilingual(d)
+        for k in ("License", "Source", "LicenseChecked", "LicenseTerms"):
+            del d["Study"][k]
+    out = problems(tmp_path, f)
+    assert any("Study.License must quote" in p for p in out)  # the English side is left without a licence
+
+
+@pytest.mark.parametrize(
+    "mutate,needle",
+    [
+        (lambda e: e.update(License="no quote here"), "Study.LicenseByLanguage.de.License must quote"),  # a
+        (lambda e: e.update(Source="www.example.org"), "Study.LicenseByLanguage.de.Source must be an absolute https URL"),  # b
+        (lambda e: e.update(LicenseChecked="14.11.2026"), "Study.LicenseByLanguage.de.LicenseChecked must be a date"),  # c
+        (lambda e: e.pop("LicenseChecked"), "Study.LicenseByLanguage.de.LicenseChecked must be a date"),  # c
+        (lambda e: e.update(LicenseTerms="Do not sell."), "Study.LicenseByLanguage.de.LicenseTerms must be a non-empty list"),  # d
+        (lambda e: e.update(LicenseTerms=[]), "Study.LicenseByLanguage.de.LicenseTerms must be a non-empty list"),  # d
+        (lambda e: e.update(LicenseTerms=["Die Nutzung ist nicht erlaubt und wird auch nicht für die Forschung verwendet."]),
+         "Study.LicenseByLanguage.de.LicenseTerms: text looks German"),  # English-metadata rule
+        (lambda e: e.update(License={"en": '"Free to copy."', "fr": "x"}), "language 'fr' is not in Study.LicenseLanguages"),
+    ],
+)
+def test_each_licence_rule_applies_per_language_entry(tmp_path, mutate, needle):
+    def f(d):
+        bilingual(d)
+        mutate(d["Study"]["LicenseByLanguage"]["de"])
+    assert any(needle in p for p in problems(tmp_path, f)), problems(tmp_path, f)
+
+
+def test_licence_by_language_key_must_be_a_licence_language(tmp_path):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseByLanguage"]["fr"] = copy.deepcopy(DE_ENTRY)
+    assert any("LicenseByLanguage" in p and "'fr'" in p and "LicenseLanguages" in p for p in problems(tmp_path, f))
+
+
+@pytest.mark.parametrize("value", ["CC-BY-SA-4.0", ["de"], {"DE": copy.deepcopy(DE_ENTRY)}])
+def test_licence_by_language_must_be_a_map_of_entries(tmp_path, value):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseByLanguage"] = value
+    assert any("LicenseByLanguage" in p for p in problems(tmp_path, f))
+
+
+def test_dass21_carries_the_german_version_and_dass_de_is_gone():
+    d = json.loads((LIB / "survey-dass21.json").read_text(encoding="utf-8"))
+    assert not (LIB / "survey-dass-de.json").exists()
+    assert d["I18n"]["Languages"] == ["en", "de"] and d["Study"]["LicenseLanguages"] == ["en", "de"]
+    items = [k for k in d if k.startswith("DASS21")]
+    assert len(items) == 21
+    for k in items:
+        assert set(d[k]["Description"]) == {"en", "de"} and d[k]["Description"]["de"].strip()
+        assert set(d[k]["Levels"]["0"]) == {"en", "de"} and d[k]["Levels"]["3"]["de"].startswith("Traf sehr stark")
+    assert d["DASS2101"]["Description"]["de"] == "Ich fand es schwer, mich zu beruhigen."
+    assert d["DASS2121"]["Description"]["de"] == "Ich empfand das Leben als sinnlos."
+    assert d["DASS2108"]["Description"]["de"] == "Ich fand alles anstrengend."
+    assert set(d["Study"]["Instructions"]) == {"en", "de"}
+    study = d["Study"]
+    assert "Public domain" not in study["License"] and "public domain" in study["License"]  # template level stays English
+    de = study["LicenseByLanguage"]["de"]
+    assert de["LicenseID"] == "CC-BY-SA-4.0" and de["LicenseChecked"] == "2026-11-14"
+    assert "authors of this version" in " ".join(de["LicenseTerms"]) and "not covered" in " ".join(de["LicenseTerms"])
+    assert "item 8" in study["Notes"].lower()
+    assert any("Nilges" in r["Citation"] for r in study["References"])
+    assert not [p for p in check_library.template_problems(d)]
+
+
+def test_no_two_library_templates_share_an_item_key():
+    # the Studio converter refuses duplicate item IDs across templates
+    seen = {}
+    for p in sorted(LIB.glob("survey-*.json")):
+        d = json.loads(p.read_text(encoding="utf-8"))
+        for k, v in d.items():
+            if k not in check_library.NON_ITEMS and isinstance(v, dict):
+                assert k not in seen, f"item key {k} is in both {seen[k]} and {p.name}"
+                seen[k] = p.name

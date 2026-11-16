@@ -81,6 +81,27 @@ def test_language_object_valid(key, value):
     assert valid(sidecar("Study", key, value))
 
 
+def test_license_by_language_valid():
+    entry = {"License": {"en": "Quoted"}, "LicenseID": "CC-BY-SA-4.0", "LicenseURL": "https://creativecommons.org/licenses/by-sa/4.0/",
+             "CopyrightHolder": "Doe", "Source": "https://example.org/x", "LicenseChecked": "2026-11-14", "LicenseTerms": ["Share alike."]}
+    assert valid(sidecar("Study", "LicenseByLanguage", {"de": entry}))
+    assert valid(sidecar("Study", "LicenseByLanguage", {"de": {**entry, "License": "plain"}}))
+
+
+@pytest.mark.parametrize("value", [
+    {"de": {"LicenseID": "WTFPL"}},  # not in the LicenseID enum
+    {"de": {"License": {"de": "nur deutsch"}}},  # an object needs 'en'
+    {"de": {"LicenseTerms": "not a list"}},
+    {"de": {"LicenseChecked": "14.11.2026"}},
+    {"de": {"Source": 5}},
+    {"DE": {"LicenseID": "MIT"}},  # language keys are lowercase codes
+    {"de": "CC-BY-SA-4.0"},  # an entry is an object
+    ["de"],
+])
+def test_license_by_language_invalid(value):
+    assert not valid(sidecar("Study", "LicenseByLanguage", value))
+
+
 def test_creator_required():
     assert not valid(sidecar("Metadata", drop="Creator"))
 
@@ -105,8 +126,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.1.3"
-    assert SCHEMA["$id"].endswith("/v2.1.3")
+    assert SCHEMA["version"] == "2.1.4"
+    assert SCHEMA["$id"].endswith("/v2.1.4")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 
@@ -205,7 +226,7 @@ def test_a_template_without_recall_period_still_validates():
 
 def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
     stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
-    assert stable["version"] == "2.1.3" and stable["$id"].endswith("/v2.1.3")
+    assert stable["version"] == "2.1.4" and stable["$id"].endswith("/v2.1.4")
     old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
     assert old["version"] == "2.0.0"
 
@@ -240,7 +261,7 @@ def test_a_template_with_a_variant_item_count_still_validates():
     assert valid(doc)
 
 
-def test_survey_schema_2_1_3_with_2_1_0_archived_unchanged():
-    assert SCHEMA["version"] == "2.1.3" and SCHEMA["$id"].endswith("/v2.1.3")
+def test_survey_schema_2_1_4_with_2_1_0_archived_unchanged():
+    assert SCHEMA["version"] == "2.1.4" and SCHEMA["$id"].endswith("/v2.1.4")
     old = json.loads((ROOT / "schemas/archive/survey/2.1.0.schema.json").read_text())
     assert old["version"] == "2.1.0"  # exact-copy check: scripts/check_schema_versions.py in CI

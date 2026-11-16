@@ -19,7 +19,7 @@ ID_RE = re.compile(r"^prism:[a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)*$")
 
 # demo and kse are written here; dass and dass21 carry a Range corrected to their template (0-3 items)
 # Open Test Archive batch 1: recipes written here from the archive pages (templates ship in library/)
-ARCHIVE_RECIPES = ["csip", "dass-de", "ebi-am", "ecr-g-10", "efk", "icg-d", "lshs-g", "pdi", "pted-skala", "stars-d", "tsi-ger-13", "tsi-ger-4"]
+ARCHIVE_RECIPES = ["csip", "ebi-am", "ecr-g-10", "efk", "icg-d", "lshs-g", "pdi", "pted-skala", "stars-d", "tsi-ger-13", "tsi-ger-4"]
 WRITTEN_HERE = {"recipe-demo.json", "recipe-kse.json", "recipe-dass.json", "recipe-dass21.json", *(f"recipe-{t}.json" for t in ARCHIVE_RECIPES)}
 
 need_source = pytest.mark.skipif(not SRC_RECIPES.is_dir(), reason=f"source copy {SRC_RECIPES} is missing")
@@ -209,7 +209,7 @@ def test_boilerplate_fails_for_each_held_recipe():
 
 
 def test_shipped_recipes_pass_boilerplate_test():
-    assert len(_shipped()) == 114
+    assert len(_shipped()) == 113
     for p in _shipped():
         assert is_boilerplate(json.loads(p.read_text(encoding="utf-8"))), p.name
 
@@ -226,7 +226,7 @@ def _ids():
 
 def test_ids_list():
     ids = _ids()
-    assert len(ids) == 1478 + 1 + 8 + 2 + 25 + 1 + 20 + 1 + 686 + 52  # + Open Test Archive batch 1 (templates + recipe scores)
+    assert len(ids) == 1478 + 1 + 8 + 2 + 25 + 1 + 20 + 1 + (686 - 22) + (52 - 3)  # + Open Test Archive batch 1 (templates + recipe scores); its dass-de (22 template IDs, 3 scores) was retracted: German is now part of dass21
     assert all(ID_RE.match(i) for i in ids)
     assert len(set(ids)) == len(ids)
     if SRC_IDS.is_file():  # the released list only grew by the IDs of the instruments written here (demo, SBI-d, archive batches)
@@ -262,7 +262,7 @@ def test_recipe_schema_1_0_0_is_the_studio_file():
 
 def test_shipped_recipes_validate_against_the_schema():
     validator = Draft7Validator(json.loads((ROOT / "schemas/stable/recipe.survey.schema.json").read_text(encoding="utf-8")))
-    assert len(_shipped()) == 114
+    assert len(_shipped()) == 113
     for p in _shipped():
         errors = list(validator.iter_errors(json.loads(p.read_text(encoding="utf-8"))))
         assert not errors, (p.name, errors[0].message)

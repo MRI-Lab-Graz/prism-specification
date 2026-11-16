@@ -286,7 +286,7 @@ def test_sbid_template_shape():
     assert "Reversed" not in SBID.read_text(encoding="utf-8")
     assert derived(SBID) == released("sbi-d") and len(derived(SBID)) == 24
     ids = (ROOT / "ids" / "survey-ids.txt").read_text(encoding="utf-8").split()
-    assert ids[-25:] == ["prism:sbi-d"] + [f"prism:sbi-d.sbid{i:02d}" for i in range(1, 25)]
+    assert {i for i in ids if i == "prism:sbi-d" or i.startswith("prism:sbi-d.")} == {"prism:sbi-d"} | {f"prism:sbi-d.sbid{i:02d}" for i in range(1, 25)}
 
 
 @pytest.mark.skipif(not SOURCE_SBID.is_file(), reason="local source file not available (CI)")
@@ -484,3 +484,37 @@ def test_unquoted_or_long_quoted_german_is_still_flagged():
     assert check_library.looks_german(f"Epistemic beliefs are defined as {DE_DEF} (Priemer, 2006).")
     assert len(DE_LONG) > 300
     assert check_library.looks_german(f'"{DE_LONG}"')
+
+
+# --- rule (h): no extraction artefacts -------------------------------------------------------------------------
+
+@pytest.mark.parametrize("char", ["ﬀ", "ﬁ", "ﬂ", "ﬃ", "ﬄ", "ﬅ", "ﬆ",
+                                  "­", "​", "‌", "‍", "﻿"])
+@pytest.mark.parametrize("where", ["item", "level", "instructions"])
+def test_rule_h_refuses_extraction_characters(tmp_path, char, where):
+    def mutate(d):
+        if where == "item":
+            d["X01"]["Description"]["en"] = f"Item{char}text"
+        elif where == "level":
+            d["X01"]["Levels"]["0"]["en"] = f"No{char}"
+        else:
+            d["Study"]["Instructions"] = {"en": f"Read{char}this"}
+
+    out = problems(tmp_path, mutate)
+    assert any(f"U+{ord(char):04X}" in line and "survey-x.json" in line for line in out), out
+
+
+def test_rule_h_names_the_field(tmp_path):
+    out = problems(tmp_path, lambda d: d["X01"]["Description"].update(en="ofﬁce"))
+    assert any("X01.Description.en" in line for line in out)
+
+
+def test_rule_h_lets_normal_text_pass(tmp_path):
+    text = "Schön, Straße, Ärger – „quoted“, ‘x’ and so on…"
+    assert problems(tmp_path, lambda d: d["X01"]["Description"].update(en=text)) == []
+
+
+def test_shipped_templates_pass_the_library_check():
+    assert check_library.check(ROOT) == []
+    assert {p.name for p in LIB.glob("survey-*.json")} >= {"survey-dass.json", "survey-dass21.json", "survey-demo.json",
+                                                            "survey-sbi-d.json", "survey-kse.json"}

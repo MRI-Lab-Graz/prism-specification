@@ -174,9 +174,21 @@ respondents and test administrators, instrument text like `Study.Instructions`) 
 (such as a quoted German definition) is not counted, a longer quoted passage is. It is a heuristic, so
 translate the text rather than trying to get around it.
 
+No string of a template may hold text-extraction artefacts (rule h of `check_library.py`): Latin ligature characters
+(U+FB00-FB06, e.g. the single character for "fi" copied from a PDF), the soft hyphen (U+00AD) or zero-width characters
+(U+200B-U+200D, U+FEFF). Write the plain letters; umlauts, ss, quotes and the ellipsis are fine.
+
 Every template must also be bibliographically complete (rule g of `check_library.py`): `Study.Authors` a non-empty
 list, `Study.Year` an integer and `Study.Citation` a real citation, never a placeholder such as "Official webpage".
 Put the primary citation in `Citation`, and further papers, manuals and sourcebook entries in `References`.
+
+## Recipes (`recipes/survey/`)
+
+A recipe of an instrument whose template ships in `library/survey/` (so its licence evidence passed
+`check_library.py`) may carry reverse-coding (`Transforms` with only `Invert`) and, per score, `Range`,
+`HigherMeans`, `Description` and `Note`, all in our own plain English. A recipe of any other instrument stays
+boilerplate: no `Transforms`, no `Note`. The tests check that a recipe agrees with its template (items exist,
+`Invert` items are scored items, the `Invert` scale and a sum `Range` follow the items' `MinValue` and `MaxValue`).
 
 ## Adding a mapping
 

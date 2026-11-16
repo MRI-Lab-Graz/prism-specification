@@ -9,7 +9,9 @@ LicenseTerms, ...) is English (a quotation in quote marks of up to 300 character
 data, the quoted Study.License evidence and the instruction and bibliographic sections of
 ArchiveMetadata (ARCHIVE_TEXT_EXEMPT), (f) no Study.ItemCount, Study.Subscales or item Reversed, (g) bibliographic
 completeness: Study.Authors is a non-empty list, Study.Year an integer and Study.Citation a real citation (not the
-placeholder "Official webpage").
+placeholder "Official webpage"), (h) no text-extraction artefacts in any string of a template: no Latin ligature
+characters (U+FB00-FB06), soft hyphen (U+00AD) or zero-width characters (U+200B-U+200D, U+FEFF); the message names the
+field and the code point. Normal umlauts, ss, quotes and the ellipsis are fine.
 """
 
 from __future__ import annotations
@@ -81,6 +83,18 @@ def _strings(value, label):
     elif isinstance(value, dict):
         for k, v in value.items():
             yield from _strings(v, label)
+
+
+ARTEFACTS = re.compile("[\ufb00-\ufb06\u00ad\u200b-\u200d\ufeff]")
+
+
+def artefact_problems(value, path="") -> list[str]:
+    """Rule (h): one line per string that holds a ligature, soft hyphen or zero-width character."""
+    if isinstance(value, str):
+        return [f"{path or '(template)'}: contains U+{ord(c):04X}, a text-extraction artefact; use the plain characters"
+                for c in dict.fromkeys(ARTEFACTS.findall(value))]
+    items = value.items() if isinstance(value, dict) else enumerate(value) if isinstance(value, list) else ()
+    return [line for k, v in items for line in artefact_problems(v, f"{path}.{k}" if path else str(k))]
 
 
 def english_problems(study: dict) -> list[str]:
@@ -182,7 +196,7 @@ def template_problems(data: dict) -> list[str]:
             out.append(f"Study.{key} must not be set")
     out += [f"{k}.Reversed must not be set" for k, v in data.items()
             if k not in NON_ITEMS and isinstance(v, dict) and "Reversed" in v]
-    return out
+    return out + artefact_problems(data)
 
 
 def check(repo: Path) -> list[str]:

@@ -528,3 +528,87 @@ def test_archive_templates_state_who_holds_which_rights():
         terms = " ".join(d["Study"]["LicenseTerms"])
         assert "authors of this version" in terms and "original instrument" in terms and "not covered" in terms, d["Study"]["TaskName"]
         assert d["Study"]["LicenseLanguages"] == ["de"], d["Study"]["TaskName"]
+
+
+# --- Study.LicenseByLanguage: a per-language licence entry overrides the template-level one for that language ---
+
+DE_ENTRY = {
+    "License": '"Copyright Autor(-Innen); CC-BY-SA 4.0" "Die Nutzung ist erlaubt."',
+    "LicenseID": "CC-BY-SA-4.0",
+    "Source": "https://example.org/de",
+    "LicenseChecked": "2026-11-14",
+    "LicenseTerms": ["Released under CC BY-SA 4.0."],
+}
+
+
+def bilingual(d):
+    d["I18n"]["Languages"] = ["en", "de"]
+    d["Study"]["LicenseLanguages"] = ["en", "de"]
+    d["Study"]["LicenseByLanguage"] = {"de": copy.deepcopy(DE_ENTRY)}
+    d["X01"]["Description"]["de"] = "Punkt"
+
+
+def test_bilingual_template_with_a_german_entry_passes(tmp_path):
+    assert problems(tmp_path, bilingual) == []
+
+
+def test_template_level_licence_covers_languages_without_an_entry(tmp_path):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseLanguages"] = ["en", "de", "fr"]
+        d["Study"]["LicenseByLanguage"] = {}
+    assert problems(tmp_path, f) == []
+
+
+def test_every_language_with_its_own_entry_needs_no_template_level_licence(tmp_path):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseByLanguage"]["en"] = {**DE_ENTRY, "License": '"Free to copy as stated."'}
+        for k in ("License", "Source", "LicenseChecked", "LicenseTerms"):
+            del d["Study"][k]
+    assert problems(tmp_path, f) == []
+
+
+def test_missing_template_licence_is_refused_for_a_language_without_an_entry(tmp_path):
+    def f(d):
+        bilingual(d)
+        for k in ("License", "Source", "LicenseChecked", "LicenseTerms"):
+            del d["Study"][k]
+    out = problems(tmp_path, f)
+    assert any("Study.License must quote" in p for p in out)  # the English side is left without a licence
+
+
+@pytest.mark.parametrize(
+    "mutate,needle",
+    [
+        (lambda e: e.update(License="no quote here"), "Study.LicenseByLanguage.de.License must quote"),  # a
+        (lambda e: e.update(Source="www.example.org"), "Study.LicenseByLanguage.de.Source must be an absolute https URL"),  # b
+        (lambda e: e.update(LicenseChecked="14.11.2026"), "Study.LicenseByLanguage.de.LicenseChecked must be a date"),  # c
+        (lambda e: e.pop("LicenseChecked"), "Study.LicenseByLanguage.de.LicenseChecked must be a date"),  # c
+        (lambda e: e.update(LicenseTerms="Do not sell."), "Study.LicenseByLanguage.de.LicenseTerms must be a non-empty list"),  # d
+        (lambda e: e.update(LicenseTerms=[]), "Study.LicenseByLanguage.de.LicenseTerms must be a non-empty list"),  # d
+        (lambda e: e.update(LicenseTerms=["Die Nutzung ist nicht erlaubt und wird auch nicht für die Forschung verwendet."]),
+         "Study.LicenseByLanguage.de.LicenseTerms: text looks German"),  # English-metadata rule
+        (lambda e: e.update(License={"en": '"Free to copy."', "fr": "x"}), "language 'fr' is not in Study.LicenseLanguages"),
+    ],
+)
+def test_each_licence_rule_applies_per_language_entry(tmp_path, mutate, needle):
+    def f(d):
+        bilingual(d)
+        mutate(d["Study"]["LicenseByLanguage"]["de"])
+    assert any(needle in p for p in problems(tmp_path, f)), problems(tmp_path, f)
+
+
+def test_licence_by_language_key_must_be_a_licence_language(tmp_path):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseByLanguage"]["fr"] = copy.deepcopy(DE_ENTRY)
+    assert any("LicenseByLanguage" in p and "'fr'" in p and "LicenseLanguages" in p for p in problems(tmp_path, f))
+
+
+@pytest.mark.parametrize("value", ["CC-BY-SA-4.0", ["de"], {"DE": copy.deepcopy(DE_ENTRY)}])
+def test_licence_by_language_must_be_a_map_of_entries(tmp_path, value):
+    def f(d):
+        bilingual(d)
+        d["Study"]["LicenseByLanguage"] = value
+    assert any("LicenseByLanguage" in p for p in problems(tmp_path, f))

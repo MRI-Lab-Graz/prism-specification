@@ -41,9 +41,7 @@ def test_fingerprint_has_the_schema_form():
 
 def test_a_known_value_is_stable():
     # fixed so a change of the normalisation rules (which would invalidate every published fingerprint) is noticed
-    assert fingerprint.fingerprint("I felt stressed.") == (
-        "sha256:" + __import__("hashlib").sha256(b"i felt stressed").hexdigest()
-    )
+    assert fingerprint.fingerprint("I felt stressed.") == "sha256:d7820219a8da0926b8d79c459f6ed6af4c3eeb797c9334f119f52bbae84fe2a8"
 
 
 def template(tmp_path, data):

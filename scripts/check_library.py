@@ -236,8 +236,8 @@ def stub_problems(data: dict) -> list[str]:
         if k in NON_ITEMS or not isinstance(v, dict) or "AliasOf" in v:
             continue
         labels = v.get("Levels") if isinstance(v.get("Levels"), dict) else {}
-        has_text = v.get("Description") is not None or any(x is not None for x in labels.values())
-        has_null = "Description" in v and v["Description"] is None or any(x is None for x in labels.values())
+        vals = ([v["Description"]] if "Description" in v else []) + list(labels.values())
+        has_text, has_null = any(x is not None for x in vals), any(x is None for x in vals)
         if stub and has_text:
             out.append(f"{k}: a stub (Study.ItemTextsIncluded false) must not carry item text")
         if stub and not v.get("Fingerprint"):

@@ -16,7 +16,7 @@ TABLE = {
     "environment": ("2.1.1", "2.1.0", "2.1.2"),
     "events": ("1.1.1", "1.1.0", "1.1.2"),
     "physio": ("1.2.1", "1.2.0", "1.2.2"),
-    "survey": ("2.1.2", "2.1.1", "2.1.4"),
+    "survey": ("2.1.2", "2.1.1", "2.1.5"),
 }
 
 
@@ -28,7 +28,7 @@ def _archive(m, v):
     return REPO / "schemas" / "archive" / m / f"{v}.schema.json"
 
 
-# survey was extended again after the block removal (2.1.4 adds Study.LicenseByLanguage), so its stable file no
+# survey was extended again after the block removal (2.1.4 adds Study.LicenseByLanguage, 2.1.5 stubs), so its stable file no
 # longer equals the pre-block archive; the later change is covered by tests/test_survey_schema.py.
 @pytest.mark.parametrize("m", [m for m in TABLE if m != "survey"])
 def test_stable_equals_pre_block_except_version_and_id(m):

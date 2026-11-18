@@ -126,8 +126,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.1.4"
-    assert SCHEMA["$id"].endswith("/v2.1.4")
+    assert SCHEMA["version"] == "2.1.5"
+    assert SCHEMA["$id"].endswith("/v2.1.5")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 
@@ -226,7 +226,7 @@ def test_a_template_without_recall_period_still_validates():
 
 def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
     stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
-    assert stable["version"] == "2.1.4" and stable["$id"].endswith("/v2.1.4")
+    assert stable["version"] == "2.1.5" and stable["$id"].endswith("/v2.1.5")
     old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
     assert old["version"] == "2.0.0"
 
@@ -261,7 +261,54 @@ def test_a_template_with_a_variant_item_count_still_validates():
     assert valid(doc)
 
 
-def test_survey_schema_2_1_4_with_2_1_0_archived_unchanged():
-    assert SCHEMA["version"] == "2.1.4" and SCHEMA["$id"].endswith("/v2.1.4")
-    old = json.loads((ROOT / "schemas/archive/survey/2.1.0.schema.json").read_text())
-    assert old["version"] == "2.1.0"  # exact-copy check: scripts/check_schema_versions.py in CI
+HASH = "sha256:" + "a" * 64
+
+
+def stub():
+    """A stub: the instrument's facts and item fingerprints, no item texts (docs: specs/instrument-ids.md)."""
+    doc = copy.deepcopy(BASE)
+    doc["Study"]["ItemTextsIncluded"] = False
+    doc["Q01"] = {"Description": None, "Levels": {"0": None, "1": None}, "Fingerprint": {"en": HASH}}
+    return doc
+
+
+def test_a_stub_with_null_texts_and_fingerprints_is_valid():
+    assert valid(stub())
+
+
+def test_null_texts_need_item_texts_included_false():
+    doc = stub()
+    del doc["Study"]["ItemTextsIncluded"]
+    assert not valid(doc)
+    doc["Study"]["ItemTextsIncluded"] = True
+    assert not valid(doc)
+
+
+def test_a_stub_may_not_carry_item_text():
+    doc = stub()
+    doc["Q01"]["Description"] = {"en": "I felt stressed"}
+    assert not valid(doc)
+    doc = stub()
+    doc["Q01"]["Levels"]["0"] = {"en": "Never"}
+    assert not valid(doc)
+
+
+def test_item_texts_included_must_be_a_boolean():
+    doc = stub()
+    doc["Study"]["ItemTextsIncluded"] = "no"
+    assert not valid(doc)
+
+
+@pytest.mark.parametrize("bad", ["abc", "sha256:" + "a" * 63, "sha256:" + "A" * 64, "md5:" + "a" * 32, None])
+def test_fingerprint_must_be_sha256_hex_per_language(bad):
+    doc = stub()
+    doc["Q01"]["Fingerprint"] = {"en": bad}
+    assert not valid(doc)
+    doc["Q01"]["Fingerprint"] = {"English": HASH}
+    assert not valid(doc)
+
+
+def test_a_normal_template_may_carry_a_fingerprint():
+    doc = copy.deepcopy(BASE)
+    doc["Q01"]["Fingerprint"] = {"en": HASH}
+    assert valid(doc)

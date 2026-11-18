@@ -46,6 +46,43 @@ def test_good_template_passes(tmp_path):
     assert problems(tmp_path, lambda d: None) == []
 
 
+HASH = "sha256:" + "a" * 64
+
+
+def make_stub(d):
+    d["Study"]["ItemTextsIncluded"] = False
+    d["X01"] = {"Description": None, "Levels": {"0": None}, "Fingerprint": {"en": HASH}}
+
+
+def test_stub_passes(tmp_path):
+    assert problems(tmp_path, make_stub) == []
+
+
+def test_stub_with_item_text_is_reported(tmp_path):
+    def m(d):
+        make_stub(d)
+        d["X01"]["Description"] = {"en": "Item"}
+    assert any("X01" in p and "stub" in p for p in problems(tmp_path, m))
+
+
+def test_stub_level_label_is_reported(tmp_path):
+    def m(d):
+        make_stub(d)
+        d["X01"]["Levels"]["0"] = {"en": "No"}
+    assert any("X01" in p and "stub" in p for p in problems(tmp_path, m))
+
+
+def test_stub_item_without_fingerprint_is_reported(tmp_path):
+    def m(d):
+        make_stub(d)
+        del d["X01"]["Fingerprint"]
+    assert any("X01" in p and "Fingerprint" in p for p in problems(tmp_path, m))
+
+
+def test_normal_template_with_null_text_is_reported(tmp_path):
+    assert any("X01" in p for p in problems(tmp_path, lambda d: d["X01"].update(Description=None)))
+
+
 @pytest.mark.parametrize(
     "mutate",
     [

@@ -271,6 +271,8 @@ def _two_modality_repo(tmp_path, entities=None):
 
 def test_cli_all_checks_every_declared_modality(tmp_path, capsys):
     repo = _two_modality_repo(tmp_path)
+    (repo / "ids").mkdir()
+    (repo / "ids" / "survey-ids.txt").write_text("prism:ads\n", encoding="utf-8")
     assert _mod.main(["--all", "--repo", str(repo)]) == 0
     (repo / "terms/biosample/bad.json").write_text(json.dumps(_parent("bad", Label="")))
     assert _mod.main(["--all", "--repo", str(repo)]) == 1
@@ -349,28 +351,51 @@ def test_all_shipped_modalities_share_no_id():
     assert _mod.cross_registry_problems(registries) == []
 
 
-def test_survey_ids_are_part_of_the_cross_modality_check(tmp_path):
-    # a biosample term named like a released survey ID must fail `--all`
+def _repo_with_survey_ids(tmp_path, text):
     import shutil
     shutil.copytree(REPO / "schemas" / "stable", tmp_path / "schemas" / "stable")
     shutil.copytree(REPO / "terms", tmp_path / "terms")
+    if text is not None:
+        (tmp_path / "ids").mkdir()
+        (tmp_path / "ids" / "survey-ids.txt").write_text(text, encoding="utf-8")
+    return tmp_path
+
+
+def test_survey_ids_are_part_of_the_cross_modality_check(tmp_path, capsys):
+    # a biosample term named like a released survey ID must fail `--all`, and for that reason
+    repo = _repo_with_survey_ids(tmp_path, "prism:cortisol\nprism:cortisol.cort01\n")
+    assert _mod.main(["--all", "--repo", str(repo)]) == 1
+    out = capsys.readouterr().out
+    assert "cortisol" in out and "survey" in out
+    out_repo = _repo_with_survey_ids(tmp_path / "ok", "prism:ads\nprism:ads.ads01\n")
+    assert _mod.main(["--all", "--repo", str(out_repo)]) == 0
+
+
+def test_all_fails_when_the_survey_id_file_is_missing(tmp_path, capsys):
+    repo = _repo_with_survey_ids(tmp_path, None)
+    assert _mod.main(["--all", "--repo", str(repo)]) == 1
+    assert "survey-ids.txt" in capsys.readouterr().out
+
+
+def test_survey_registry_reports_malformed_lines(tmp_path):
     (tmp_path / "ids").mkdir()
-    (tmp_path / "ids" / "survey-ids.txt").write_text("prism:cortisol\nprism:cortisol.cort01\n", encoding="utf-8")
-    assert "cortisol" in _mod.survey_registry(tmp_path)
-    assert _mod.main(["--all", "--repo", str(tmp_path)]) == 1
+    (tmp_path / "ids" / "survey-ids.txt").write_text("prism:ads\n# note\nlocal:x\nprism:Bad\n", encoding="utf-8")
+    registry, problems = _mod.survey_registry(tmp_path)
+    assert list(registry) == ["ads"]
+    assert len(problems) == 3 and all("survey-ids.txt" in p for p in problems)
 
 
 def test_shipped_survey_ids_collide_with_no_term():
     registries = {n: load_terms(REPO / "terms" / n)[0] for n in _mod.term_modalities(REPO)}
-    registries["survey"] = _mod.survey_registry(REPO)
-    assert registries["survey"] and _mod.cross_registry_problems(registries) == []
+    registries["survey"], problems = _mod.survey_registry(REPO)
+    assert registries["survey"] and problems == [] and _mod.cross_registry_problems(registries) == []
 
 
 # --- local: IDs belong to one project: a pattern, never registered, never an IRI
 
 def test_local_id_pattern():
     ok = ["local:my-scale", "local:my-scale.item01", "local:cortisol.saliva"]
-    bad = ["local:", "local:My", "local:a.b.c", "prism:my-scale", "local:1abc", "my-scale"]
+    bad = ["local:", "local:My", "local:a.b.c", "prism:my-scale", "local:1abc", "local:my-scale.1abc", "my-scale"]
     assert all(_mod.is_local_id(i) for i in ok)
     assert not any(_mod.is_local_id(i) for i in bad)
 

@@ -349,6 +349,37 @@ def test_all_shipped_modalities_share_no_id():
     assert _mod.cross_registry_problems(registries) == []
 
 
+def test_survey_ids_are_part_of_the_cross_modality_check(tmp_path):
+    # a biosample term named like a released survey ID must fail `--all`
+    import shutil
+    shutil.copytree(REPO / "schemas" / "stable", tmp_path / "schemas" / "stable")
+    shutil.copytree(REPO / "terms", tmp_path / "terms")
+    (tmp_path / "ids").mkdir()
+    (tmp_path / "ids" / "survey-ids.txt").write_text("prism:cortisol\nprism:cortisol.cort01\n", encoding="utf-8")
+    assert "cortisol" in _mod.survey_registry(tmp_path)
+    assert _mod.main(["--all", "--repo", str(tmp_path)]) == 1
+
+
+def test_shipped_survey_ids_collide_with_no_term():
+    registries = {n: load_terms(REPO / "terms" / n)[0] for n in _mod.term_modalities(REPO)}
+    registries["survey"] = _mod.survey_registry(REPO)
+    assert registries["survey"] and _mod.cross_registry_problems(registries) == []
+
+
+# --- local: IDs belong to one project: a pattern, never registered, never an IRI
+
+def test_local_id_pattern():
+    ok = ["local:my-scale", "local:my-scale.item01", "local:cortisol.saliva"]
+    bad = ["local:", "local:My", "local:a.b.c", "prism:my-scale", "local:1abc", "my-scale"]
+    assert all(_mod.is_local_id(i) for i in ok)
+    assert not any(_mod.is_local_id(i) for i in bad)
+
+
+def test_local_id_has_no_iri():
+    with pytest.raises(ValueError, match="no IRI"):
+        _mod.expand("local:my-scale", REPO)
+
+
 # --- the prism: namespace expands to a resolvable URL --------------------------
 
 def test_expand_gives_the_url_of_the_term_file_in_its_modality_folder():

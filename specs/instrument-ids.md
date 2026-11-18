@@ -48,9 +48,25 @@ Rule for "same instrument":
 Because translations share the ID, item IDs are language-independent: `prism:ads.ads01` is item 1 in every language.
 Matching therefore uses citation, abbreviation, item count and response scale, never item wording alone.
 
-## Not decided here
+## Item fingerprints
 
-Publishing a fingerprint (hash) of each normalised item so that labs can check their copy without asking the
-maintainer was considered and left out: it fails on typos and formatting, needs fixed normalisation rules and
-per-language fingerprints, and is not needed while the number of registrations is small. A stub can gain such a
-field later without changing any ID.
+A stub carries a fingerprint (SHA-256 hash) of every item text, **one per item and per language**, keyed by the item ID:
+
+```json
+"prism:ads.ads01": {"de": "sha256:3f9a...", "en": "sha256:b71c..."}
+```
+
+- The text is **normalised** before hashing (Unicode NFC, lower case, whitespace collapsed, punctuation removed), by one
+  function, so that formatting differences do not change the hash. The text cannot be recovered from the hash.
+- The fingerprints are created from the private store by a command, never by hand. Which language a set belongs to is
+  recorded; a translation not yet in the store has no fingerprints and can only be matched by review.
+
+How a local survey is linked to an ID:
+
+1. The user's items are hashed locally (nothing is uploaded) and compared with the stubs, item by item.
+2. **All items match** one stub: the ID is certain; it is used automatically.
+3. **Some or none match** (typo, other edition, short form, new translation): the case goes to the maintainer, who
+   decides in the private store (same ID, or a new one). A mismatch never produces a wrong ID; it only costs a review.
+   The partial result (how many items match) is shown to help that review.
+
+A hash only confirms text someone already has; it is not a secret and gives away nothing of the licensed content.

@@ -24,8 +24,14 @@ in **format v2**: the files it adds, each under its repository path.
            "terms/biosample/dhea-s.saliva.json": <child term>}}
 ```
 
-* Up to 40 files. Each key is a repository path of the form `terms/<modality>/<id>.json` (nothing else is
-  accepted), and the file name must equal the local part of the term's `TermID`.
+* Up to 40 files. Each key is a repository path of the form `terms/<modality>/<id>.json`, a schema patch
+  (`patches/<modality>.json`, below) or a family of links (`mappings/<modality>/<family>.json`, next point); nothing
+  else is accepted, and a term file name must equal the local part of the term's `TermID`.
+* **Links** to other vocabularies (SNOMED, LOINC, ICD-11, Wikidata, ...; the list is `mappings/vocabularies.json`)
+  go in a file `mappings/<modality>/<family>.json`: an object of ID -> entry, in the format of
+  [specs/mappings.md](specs/mappings.md). The ID is a term of the registry or one the proposal adds, and its family
+  is the file name. The bot merges the new IDs into the family's file; an ID that is already mapped is refused (a
+  changed link is a maintainer's edit). A proposal of links alone, for terms that exist, is allowed.
 * A child term's `Parent` is either an official term or in the same proposal.
 * The older format `{"modality": "biosample", "terms": [...]}` is still accepted, limited to two terms.
 * A proposal too long for the prefilled link is pasted into the form's text field; nothing is attached.

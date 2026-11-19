@@ -11,7 +11,7 @@ import pytest
 REPO = Path(__file__).resolve().parent.parent
 # modality: (block version, pre-block version, new version)
 TABLE = {
-    "biometrics": ("1.1.2", "1.1.1", "1.1.3"),
+    "biometrics": ("1.1.2", "1.1.1", "1.1.4"),
     "biosample": ("1.1.1", "1.1.0", "1.1.2"),
     "environment": ("2.1.1", "2.1.0", "2.1.2"),
     "events": ("1.1.1", "1.1.0", "1.1.2"),
@@ -28,9 +28,9 @@ def _archive(m, v):
     return REPO / "schemas" / "archive" / m / f"{v}.schema.json"
 
 
-# survey was extended again after the block removal (2.1.4 adds Study.LicenseByLanguage, 2.1.5 stubs), so its stable file no
+# biometrics (1.1.4: guidance, muscular-power, aliases dropped; tests/test_biometrics_schema.py) and survey were extended again after the block removal (2.1.4 adds Study.LicenseByLanguage, 2.1.5 stubs), so its stable file no
 # longer equals the pre-block archive; the later change is covered by tests/test_survey_schema.py.
-@pytest.mark.parametrize("m", [m for m in TABLE if m != "survey"])
+@pytest.mark.parametrize("m", [m for m in TABLE if m not in ("survey", "biometrics")])
 def test_stable_equals_pre_block_except_version_and_id(m):
     _, pre, new = TABLE[m]
     a, b = json.loads(_stable(m).read_text("utf-8")), json.loads(_archive(m, pre).read_text("utf-8"))

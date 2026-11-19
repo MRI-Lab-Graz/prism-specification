@@ -248,9 +248,9 @@ def stub_problems(data: dict) -> list[str]:
 
 
 # Other modalities: the descriptive header and every column Description are English (a column description is
-# metadata, not instrument text); OriginalName, ShortName and Instructions may be in any language.
+# metadata, not instrument text); OriginalName and Instructions may be in any language.
 OTHER_ENGLISH = {
-    "Study": ("Description", "Reliability", "Validity", "Notes", "TargetPopulation", "ExclusionCriteria", "WarmupProtocol"),
+    "Study": ("ShortName", "Description", "Reliability", "Validity", "Notes", "TargetPopulation", "ExclusionCriteria", "WarmupProtocol"),
     "Technical": ("Equipment",),
     "Scoring": ("ScoringMethod", "CutoffsSource", "NormsSource"),
     "Normative": ("ReferencePopulation", "ReferenceSource"),

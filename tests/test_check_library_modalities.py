@@ -54,3 +54,8 @@ def test_german_item_description_is_refused(tmp_path):
 
 def test_text_extraction_artefact_is_refused(tmp_path):
     assert problems(tmp_path, lambda d: d["Study"].update(Description={"en": "eﬃcient jump"}))
+
+
+def test_a_translated_abbreviation_is_refused(tmp_path):
+    out = problems(tmp_path, lambda d: d["Study"].update(ShortName={"en": "FAB", "de": "FAB"}))
+    assert any("Study.ShortName" in x for x in out)

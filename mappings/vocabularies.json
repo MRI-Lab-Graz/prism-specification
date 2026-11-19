@@ -4,7 +4,7 @@
     "label": "SNOMED CT"
   },
   "loinc": {
-    "pattern": "^https://loinc\\.org/(\\d+-\\d|L[APL]\\d+-\\d)$",
+    "pattern": "^https://loinc\\.org/(\\d+-\\d|L[APLG]\\d+-\\d)$",
     "label": "LOINC"
   },
   "chebi": {
@@ -56,11 +56,11 @@
     "label": "Experimental Factor Ontology"
   },
   "icd11": {
-    "pattern": "^https?://id\\.who\\.int/icd/entity/\\d+$",
-    "label": "ICD-11 (WHO foundation entity)"
+    "pattern": "^https?://id\\.who\\.int/icd/(entity/\\d+|release/11/\\d{4}-\\d{2}/mms/\\d+)$",
+    "label": "ICD-11 (WHO foundation entity or MMS)"
   },
   "icd10": {
-    "pattern": "^https://icd\\.who\\.int/browse10/\\d{4}/en#/[A-Z]\\d{2}(\\.\\d{1,2})?$",
+    "pattern": "^https://icd\\.who\\.int/browse10/\\d{4}/en#/[A-Z]\\d{2}(\\.\\d{1,2})?(-[A-Z]\\d{2})?$",
     "label": "ICD-10 (WHO)"
   },
   "mesh": {

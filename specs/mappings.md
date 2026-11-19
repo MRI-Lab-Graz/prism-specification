@@ -83,7 +83,7 @@ A `SameAs` name, and the URL of a `Measures` link, must come from `mappings/voca
 | `cmo` | Clinical Measurement Ontology |
 | `oba` | Ontology of Biological Attributes |
 | `efo` | Experimental Factor Ontology |
-| `icd11` | ICD-11 (WHO foundation entity) |
+| `icd11` | ICD-11 (WHO foundation entity or MMS) |
 | `icd10` | ICD-10 (WHO) |
 | `mesh` | MeSH |
 | `umls` | UMLS Metathesaurus |

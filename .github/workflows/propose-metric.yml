@@ -108,6 +108,7 @@ jobs:
         run: |
           BRANCH="metric/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
           if [ -d bundle/files/schemas ]; then export SCHEMA_RELEASE=1; fi
+          if [ -d bundle/files/mappings ]; then export HAS_LINKS=1; fi
           python3 scripts/term_proposal.py pr-body > pr-body.md
           cp -R bundle/files/. .
           git config user.name "github-actions[bot]"

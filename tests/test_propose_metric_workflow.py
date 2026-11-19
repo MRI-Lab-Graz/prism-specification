@@ -180,6 +180,13 @@ def test_the_pull_request_step_copies_only_the_verified_files_and_marks_schema_r
     assert script.index("pr-body") > script.index("SCHEMA_RELEASE")  # the marker is set before the text is written
 
 
+def test_the_pull_request_step_marks_a_proposal_with_links():
+    step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "draft" in s.get("name", "").lower())
+    script = step["run"]
+    assert "HAS_LINKS" in script and "bundle/files/mappings" in script
+    assert script.index("HAS_LINKS") < script.index("pr-body")  # the marker is set before the text is written
+
+
 def test_the_failure_comment_reads_the_log_of_the_bundle():
     step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "problems" in s.get("name", "").lower())
     assert "bundle/log" in step["run"]

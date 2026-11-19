@@ -63,6 +63,48 @@ A mapping file holds no free text except `Source` (and the slug `Name`). It neve
 
 A specimen child (`prism:cortisol.serum`) inherits the links of its analyte; no check is needed for that.
 
+## Vocabularies
+
+A `SameAs` name, and the URL of a `Measures` link, must come from `mappings/vocabularies.json`. These are known:
+
+| Name | Vocabulary |
+|---|---|
+| `snomed` | SNOMED CT |
+| `loinc` | LOINC |
+| `chebi` | ChEBI |
+| `ncit` | NCI Thesaurus |
+| `hpo` | Human Phenotype Ontology |
+| `mondo` | Mondo Disease Ontology |
+| `doid` | Human Disease Ontology |
+| `mfoem` | Emotion Ontology |
+| `mfomd` | Mental Disease Ontology |
+| `uberon` | Uberon anatomy ontology |
+| `pato` | Phenotype And Trait Ontology |
+| `cmo` | Clinical Measurement Ontology |
+| `oba` | Ontology of Biological Attributes |
+| `efo` | Experimental Factor Ontology |
+| `icd11` | ICD-11 (WHO foundation entity or MMS) |
+| `icd10` | ICD-10 (WHO) |
+| `mesh` | MeSH |
+| `umls` | UMLS Metathesaurus |
+| `wikidata` | Wikidata |
+| `cogatlas` | Cognitive Atlas |
+| `cde` | NIH Common Data Elements Repository |
+| `pubchem` | PubChem compound |
+| `uniprot` | UniProt |
+| `atc` | ATC (WHO drug classification) |
+| `orphanet` | Orphanet |
+| `omim` | OMIM |
+| `hmdb` | Human Metabolome Database |
+| `drugbank` | DrugBank |
+| `rxnorm` | RxNorm |
+
+The list is data: a new vocabulary is one entry (name, label, URL pattern) with a real example URL in
+`tests/test_vocabularies.py`, which checks that the example matches its own pattern and no other. A pattern checks the
+shape of a URL, never that the entry exists; the author looks every link up. When a vocabulary was added, the shape was
+confirmed by opening a real entry, except for `drugbank`, `hmdb`, `icd11`, `loinc`, `omim`, `rxnorm`: those services refuse automated
+look-ups, so their shape is the one in their own documentation and a link there needs a manual look-up.
+
 ## Who reviews links
 
 An author adds a link as `unreviewed`, looks the URL up in the vocabulary and writes `Source` and `Checked`. A

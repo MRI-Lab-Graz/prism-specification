@@ -218,9 +218,9 @@ def test_the_shipped_mappings_pass():
     assert check_mappings.check(ROOT) == []
 
 
-def test_vocabularies_hold_the_four_systems_as_data():
+def test_vocabularies_are_data_with_a_pattern_and_a_label():
     vocabs = json.loads((ROOT / "mappings/vocabularies.json").read_text(encoding="utf-8"))
-    assert set(vocabs) == {"snomed", "loinc", "chebi", "ncit"}
+    assert {"snomed", "loinc", "chebi", "ncit"} <= set(vocabs)  # the first four; tests/test_vocabularies.py has the rest
     assert all(set(v) == {"pattern", "label"} for v in vocabs.values())
 
 

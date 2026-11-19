@@ -199,7 +199,8 @@ or the ID; the format is in [specs/mappings.md](specs/mappings.md).
    (`mappings/survey/phq9.json`, `mappings/biosample/cortisol.json`). Keys are full `prism:` IDs of that family.
 2. Look every URL up yourself in the vocabulary and write who made the link (`Source`), the date you looked
    (`Checked`) and `Status` `unreviewed`. Do not copy codes from memory. Quote no item wording.
-3. A new vocabulary is one entry in `mappings/vocabularies.json` (name, URL pattern, label); say in the pull
+3. A new vocabulary is one entry in `mappings/vocabularies.json` (name, URL pattern, label) plus a real
+   example URL in `tests/test_vocabularies.py` and a row in the table of `specs/mappings.md`; say in the pull
    request where you looked the pattern up.
 4. Run `python scripts/check_mappings.py` and `python scripts/check_terms.py --all`; both must print nothing.
 5. A maintainer who has checked the link sets `Status` to `reviewed`.

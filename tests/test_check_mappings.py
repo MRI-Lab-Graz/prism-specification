@@ -245,14 +245,6 @@ def test_termurl_in_a_term_is_refused():
     assert any("mappings/" in p for p in problems)
 
 
-def test_loinc_field_must_agree_with_a_mapped_loinc_link():
-    term = {"TermID": "prism:cortisol", "Level": "analyte", "Label": "cortisol", "Status": "official", "LOINC": "2143-6"}
-    reg = {"cortisol": term}
-    assert check_terms.check_registry(reg, [], {"prism:cortisol": "https://loinc.org/2143-7"})
-    assert check_terms.check_registry(reg, [], {"prism:cortisol": "https://loinc.org/2143-6"}) == []
-    assert check_terms.check_registry(reg, [], {}) == []
-
-
 # --- survey_ids is the same derivation as Studio's --------------------------------
 
 STUDIO = Path("/Volumes/Evo/work/github/prism-studio")
@@ -294,3 +286,18 @@ def test_a_mapping_for_an_id_without_a_library_file_is_an_error(repo):
 def test_the_warning_does_not_fail_the_run(repo, capsys):
     assert check_mappings.main(["--repo", str(repo)]) == 0
     assert "warning: 1 released survey ID" in capsys.readouterr().out
+
+
+def test_loinc_in_a_term_is_refused_and_belongs_in_mappings():
+    term = {"TermID": "prism:cortisol", "Level": "analyte", "Label": "cortisol", "Status": "official", "LOINC": "2143-6"}
+    problems = check_terms.check_registry({"cortisol": term}, [])
+    assert any("LOINC" in p and "mappings/" in p for p in problems)
+
+
+def test_the_two_loinc_codes_of_the_registry_moved_into_mappings_unchanged():
+    expected = {"crp": ("prism:crp.serum", "30522-7"), "il6": ("prism:il6.serum", "26881-3")}
+    for family, (tid, code) in expected.items():
+        term = json.loads((ROOT / f"terms/biosample/{tid.partition(':')[2]}.json").read_text(encoding="utf-8"))
+        assert "LOINC" not in term
+        mapping = json.loads((ROOT / f"mappings/biosample/{family}.json").read_text(encoding="utf-8"))
+        assert mapping[tid]["SameAs"] == {"loinc": f"https://loinc.org/{code}"}

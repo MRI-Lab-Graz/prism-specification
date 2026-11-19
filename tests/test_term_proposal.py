@@ -206,7 +206,7 @@ def test_pr_body_cli_reads_the_environment(monkeypatch, capsys):
         ("parent", "Description", {"x": 1}), ("parent", "Level", 3),
         ("child", "AlternativeUnits", {"a": 1}), ("child", "Units", 5), ("child", "Units", {"x": 1}),
         ("child", "MinValue", "zero"), ("child", "MinValue", True), ("child", "WarnMaxValue", [1]),
-        ("child", "LOINC", 5), ("child", "SpecimenType", ["serum"]), ("child", "Parent", 7),
+        ("child", "SpecimenType", ["serum"]), ("child", "Parent", 7),
     ],
 )
 def test_value_types_are_checked_without_crashing(where, field, value):

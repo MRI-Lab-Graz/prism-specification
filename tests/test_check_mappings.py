@@ -206,7 +206,7 @@ def test_derived_survey_ids_must_be_in_the_released_list(repo):
 def test_cli_exit_codes(repo):
     script = ROOT / "scripts" / "check_mappings.py"
     ok = subprocess.run([sys.executable, str(script), "--repo", str(repo)], capture_output=True, text=True)
-    assert ok.returncode == 0 and ok.stdout == ""
+    assert ok.returncode == 0 and ok.stdout.startswith("warning: 1 released survey ID")
     put(repo, "biosample", "cortisol", {"prism:ferritin": {}})
     bad = subprocess.run([sys.executable, str(script), "--repo", str(repo)], capture_output=True, text=True)
     assert bad.returncode == 1 and "prism:ferritin" in bad.stdout
@@ -279,3 +279,18 @@ def test_survey_ids_agree_with_studio_on_the_shipped_templates():
 def test_survey_ids_helpers():
     assert survey_ids.item_local_id("tipi", "TIPI02") == "tipi.tipi02"
     assert survey_ids.score_local_id("tipi", "tipi_extraversion") == "tipi.score-extraversion"
+
+
+def test_released_instruments_without_a_library_file_are_warned_about(repo):
+    warnings = check_mappings.missing_targets(repo)
+    assert len(warnings) == 1 and "prism:other" in warnings[0] and "xq" not in warnings[0]
+
+
+def test_a_mapping_for_an_id_without_a_library_file_is_an_error(repo):
+    put(repo, "survey", "other", {"prism:other.o1": {"SameAs": {"example": URL}}})
+    assert says(run(repo), "no library file")
+
+
+def test_the_warning_does_not_fail_the_run(repo, capsys):
+    assert check_mappings.main(["--repo", str(repo)]) == 0
+    assert "warning: 1 released survey ID" in capsys.readouterr().out

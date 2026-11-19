@@ -82,7 +82,7 @@ A term is one JSON file in `terms/<modality>/`, named after the local part of it
   `terms/biosample/cortisol.saliva.json`: `TermID` (`prism:cortisol.saliva`),
   `Level` (`analyte-specimen`), `Parent`, `SpecimenType`, `Units` (UCUM,
   e.g. `nmol/L`), optional `AlternativeUnits`, `MinValue`, `WarnMaxValue`,
-  `LOINC`, `Equivalents`, `Status`.
+  `Equivalents`, `Status`. A code of another vocabulary (for example LOINC) is not a term field: it is a link under `mappings/`.
 * **The `prism:` namespace** is `https://w3id.org/prism-specification/terms/`: `prism:cortisol` is
   `https://w3id.org/prism-specification/terms/biosample/cortisol` (`check_terms.expand`). An ID names one
   concept and is unique across all modalities; the modality is part of the URL, not of the ID.

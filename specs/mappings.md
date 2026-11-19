@@ -5,7 +5,7 @@ a value points and how a value is read as a state is written in a separate layer
 added, corrected or removed without a new schema version, because it never touches the data or the ID.
 
 PRISM keeps no list of symptoms or constructs of its own: a link points to an entry in an existing external
-vocabulary. The URLs below are placeholders (`example.org`), not real codes.
+vocabulary. The URLs in the example below are placeholders (`example.org`), not real codes; the files under "Shipped mappings" use real ones.
 
 ## A mapping file
 
@@ -67,3 +67,13 @@ A specimen child (`prism:cortisol.serum`) inherits the links of its analyte; no 
 
 An author adds a link as `unreviewed`, looks the URL up in the vocabulary and writes `Source` and `Checked`. A
 maintainer who has checked it sets `Status` to `reviewed`. Content arrives by pull request, like terms.
+
+## Shipped mappings
+
+* **DASS and DASS-21** (`mappings/survey/dass.json`, `dass21.json`): every item is linked to the SNOMED CT score of
+  the subscale it counts towards (depression, anxiety or stress), as `Measures` with `Match` `related`, `Higher`
+  `more`. The assignment is the one on the DASS authors' own scoring template; the three codes were looked up on a
+  SNOMED CT terminology server (edition 2026-07-01). Links are `unreviewed` until a maintainer has checked them.
+  The templates define no subscale scores, so there are no links for scores.
+* **Demo** (`mappings/survey/demo.json`): one `ValueRules` entry on the demo total score. It is invented, to show the
+  format, and is not a research rule.

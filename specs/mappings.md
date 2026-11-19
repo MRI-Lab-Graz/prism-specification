@@ -5,7 +5,7 @@ a value points and how a value is read as a state is written in a separate layer
 added, corrected or removed without a new schema version, because it never touches the data or the ID.
 
 PRISM keeps no list of symptoms or constructs of its own: a link points to an entry in an existing external
-vocabulary. The URLs below are placeholders (`example.org`), not real codes.
+vocabulary. The URLs in the example below are placeholders (`example.org`), not real codes; the files under "Shipped mappings" use real ones.
 
 ## A mapping file
 

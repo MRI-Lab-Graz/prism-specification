@@ -156,13 +156,35 @@ def test_verify_step_accepts_the_files_of_a_schema_release(tmp_path, extra):
     assert result.returncode == 0, result.stderr
 
 
+def test_verify_step_accepts_a_family_file_of_links(tmp_path):
+    result = _verify(_bundle(tmp_path, ("files/mappings/biosample/ferritin.json",)))
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("extra", [
+    ("files/mappings/biosample/UPPER.json",), ("files/mappings/biosample/a.b.json",), ("files/mappings/vocabularies.json",),
+    ("files/mappings/biosample/x/y.json",), ("files/mappings/Biosample/x.json",), ("files/mappings/biosample/..evil",),
+    ("files/mappings/biosample/" + "a" * 64 + ".json",), ("files/mappings/biosample/x.json.bak",), ("mappings/biosample/x.json",),
+])
+def test_verify_step_rejects_unexpected_link_files(tmp_path, extra):
+    result = _verify(_bundle(tmp_path, extra))
+    assert result.returncode != 0 and "unexpected files" in result.stderr
+
+
 def test_the_pull_request_step_copies_only_the_verified_files_and_marks_schema_releases():
     step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "draft" in s.get("name", "").lower())
     script = step["run"]
     assert "cp -R bundle/files/. ." in script and "bundle/terms" not in script
-    assert "git add terms schemas specs" in script
+    assert "git add terms schemas specs mappings" in script
     assert "SCHEMA_RELEASE" in script and "bundle/files/schemas" in script
     assert script.index("pr-body") > script.index("SCHEMA_RELEASE")  # the marker is set before the text is written
+
+
+def test_the_pull_request_step_marks_a_proposal_with_links():
+    step = next(s for s in _workflow()["jobs"]["report"]["steps"] if "draft" in s.get("name", "").lower())
+    script = step["run"]
+    assert "HAS_LINKS" in script and "bundle/files/mappings" in script
+    assert script.index("HAS_LINKS") < script.index("pr-body")  # the marker is set before the text is written
 
 
 def test_the_failure_comment_reads_the_log_of_the_bundle():

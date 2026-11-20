@@ -313,7 +313,7 @@ def test_every_shipped_template_is_bibliographically_complete(path):
     assert not [p for p in check_library.template_problems(data) if "Authors" in p or "Year" in p or "Citation" in p]
 
 
-SBID = LIB / "survey-sbi-d.json"
+SBID = LIB / "survey-sbid.json"
 SOURCE_SBID = Path("/Volumes/Evo/work/prism-local-library/research/sbi-d-source.json")
 
 
@@ -328,9 +328,9 @@ def test_sbid_template_shape():
         assert list(v["Levels"]) == ["1", "7"]
     assert data["Technical"]["Language"] == "de" and data["Study"]["LicenseLanguages"] == ["de"]
     assert "Reversed" not in SBID.read_text(encoding="utf-8")
-    assert derived(SBID) == released("sbi-d") and len(derived(SBID)) == 24
+    assert derived(SBID) == released("sbid") and len(derived(SBID)) == 24
     ids = (ROOT / "ids" / "survey-ids.txt").read_text(encoding="utf-8").split()
-    assert {i for i in ids if i == "prism:sbi-d" or i.startswith("prism:sbi-d.")} == {"prism:sbi-d"} | {f"prism:sbi-d.sbid{i:02d}" for i in range(1, 25)}
+    assert {i for i in ids if i == "prism:sbid" or i.startswith("prism:sbid.")} == {"prism:sbid"} | {f"prism:sbid.sbid{i:02d}" for i in range(1, 25)}
 
 
 @pytest.mark.skipif(not SOURCE_SBID.is_file(), reason="local source file not available (CI)")
@@ -561,7 +561,7 @@ def test_rule_h_lets_normal_text_pass(tmp_path):
 def test_shipped_templates_pass_the_library_check():
     assert check_library.check(ROOT) == []
     assert {p.name for p in LIB.glob("survey-*.json")} >= {"survey-dass.json", "survey-dass21.json", "survey-demo.json",
-                                                            "survey-sbi-d.json", "survey-kse.json"}
+                                                            "survey-sbid.json", "survey-kse.json"}
 
 
 def test_archive_templates_state_who_holds_which_rights():

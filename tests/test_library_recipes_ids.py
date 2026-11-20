@@ -13,13 +13,13 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = Path("/Volumes/Evo/work/prism-local-library/official")
 SRC_RECIPES = SOURCE / "recipe" / "survey"
 SRC_IDS = SOURCE / "library" / "survey" / "term-ids.txt"
-HELD = {"recipe-psqi.json", "recipe-tipi.json", "recipe-wellbeing.json", "recipe-wellbeing-multi.json"}
+HELD = {"recipe-psqi.json", "recipe-tipi.json", "recipe-wellbeing.json", "recipe-wellbeingmulti.json"}
 SCHEMA_SHA256 = "6875a1da1a84b495ab866abdfdabd35c8c1602eef8636149290c12a54b1661e7"
 ID_RE = re.compile(r"^prism:[a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)*$")
 
 # demo and kse are written here; dass and dass21 carry a Range corrected to their template (0-3 items)
 # Open Test Archive batch 1: recipes written here from the archive pages (templates ship in library/)
-ARCHIVE_RECIPES = ["csip", "ebi-am", "ecr-g-10", "efk", "icg-d", "lshs-g", "pdi", "pted-skala", "stars-d", "tsi-ger-13", "tsi-ger-4"]
+ARCHIVE_RECIPES = ["csip", "ebiam", "ecrg10", "efk", "icgd", "lshsg", "pdi", "ptedskala", "starsd", "tsiger13", "tsiger4"]
 WRITTEN_HERE = {"recipe-demo.json", "recipe-kse.json", "recipe-dass.json", "recipe-dass21.json", *(f"recipe-{t}.json" for t in ARCHIVE_RECIPES)}
 
 need_source = pytest.mark.skipif(not SRC_RECIPES.is_dir(), reason=f"source copy {SRC_RECIPES} is missing")
@@ -65,8 +65,19 @@ def is_boilerplate(recipe: dict, shipped=None) -> bool:
     return True
 
 
+def _alnum(text: str) -> str:
+    """The source copy predates the alphanumeric task labels: apply the rename (ecr-g-10 -> ecrg10) to its text."""
+    text = re.sub(r'"TaskName": "([^"]+)"', lambda m: '"TaskName": "' + m[1].replace("-", "") + '"', text)
+    return re.sub(r"survey-([a-z0-9-]+)\.json", lambda m: "survey-" + m[1].replace("-", "") + ".json", text)
+
+
+def _alnum_name(filename: str) -> str:
+    stem = filename.removeprefix("recipe-").removesuffix(".json")
+    return f"recipe-{stem.replace('-', '')}.json"
+
+
 def _source_recipes():
-    return {p.name: json.loads(p.read_text(encoding="utf-8")) for p in sorted(SRC_RECIPES.glob("recipe-*.json"))}
+    return {_alnum_name(p.name): json.loads(_alnum(p.read_text(encoding="utf-8"))) for p in sorted(SRC_RECIPES.glob("recipe-*.json"))}
 
 
 def _shipped():
@@ -197,7 +208,8 @@ def test_shipped_recipes_are_exactly_the_passing_ones():
     assert shipped == passing == set(src) - HELD
     for p in _shipped():
         if p.name not in WRITTEN_HERE:
-            assert p.read_bytes() == (SRC_RECIPES / p.name).read_bytes()
+            source = next(q for q in SRC_RECIPES.glob("recipe-*.json") if _alnum_name(q.name) == p.name)
+            assert p.read_text(encoding="utf-8") == _alnum(source.read_text(encoding="utf-8"))
     assert not [n for n in HELD if list((ROOT / "recipes").rglob(n))]
 
 
@@ -230,7 +242,7 @@ def test_ids_list():
     assert all(ID_RE.match(i) for i in ids)
     assert len(set(ids)) == len(ids)
     if SRC_IDS.is_file():  # the released list only grew by the IDs of the instruments written here (demo, SBI-d, archive batches)
-        src = SRC_IDS.read_text(encoding="utf-8").splitlines()
+        src = ["prism:" + i.removeprefix("prism:").split(".")[0].replace("-", "") + "".join("." + part for part in i.removeprefix("prism:").split(".")[1:]) for i in SRC_IDS.read_text(encoding="utf-8").splitlines()]
         new_heads = {f"prism:{t}" for t in _shipped_tasks()} - {i.split(".")[0] for i in src}
         assert [i for i in ids if i.split(".")[0] not in new_heads] == src
     readme = (ROOT / "ids" / "README.md").read_text(encoding="utf-8")
@@ -314,5 +326,5 @@ def test_archive_batch1_recipes_say_what_they_know_about_reverse_coding():
         if "Transforms" not in recipe:
             notes = " ".join(s.get("Note", "") for s in recipe["Scores"])
             assert "reverse" in notes and "archive documentation" in notes, task
-    for task in ("cpaq-d", "esrd-scl-tm", "febo", "bfas-g", "pmerq"):  # held back: decision or scoring data missing
+    for task in ("cpaqd", "esrdscltm", "febo", "bfasg", "pmerq"):  # held back: decision or scoring data missing
         assert not (ROOT / f"recipes/survey/recipe-{task}.json").exists(), task

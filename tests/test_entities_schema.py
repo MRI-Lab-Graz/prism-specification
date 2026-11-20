@@ -10,8 +10,9 @@ ENTITIES = json.loads((Path(__file__).resolve().parents[1] / "schemas/stable/ent
 def test_a_survey_file_name_must_carry_a_task():
     """A survey without a task cannot be matched to its template or sidecar."""
     task = ENTITIES["modalities"]["survey"]["requiredEntityValues"]["task"]
-    assert all(re.fullmatch(task["pattern"], label) for label in ("brs", "wellbeing-multi", "phq9"))
+    assert all(re.fullmatch(task["pattern"], label) for label in ("brs", "wellbeingmulti", "phq9"))
     assert not re.fullmatch(task["pattern"], "")
+    assert not re.fullmatch(task["pattern"], "wellbeing-multi")  # a task label has no separator (BIDS)
 
 
 def test_a_survey_file_name_may_carry_the_variant_and_run_entities():

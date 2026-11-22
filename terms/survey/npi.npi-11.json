@@ -1,0 +1,17 @@
+{
+  "TermID": "prism:npi.npi-11",
+  "Level": "item",
+  "Parent": "prism:npi",
+  "Label": "NPI item 11",
+  "Aliases": [
+    "NPI_11"
+  ],
+  "Description": "Item 11 of the Narcissistic Personality Inventory",
+  "Levels": {
+    "1": "trifft gar nicht zu / not at all",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "trifft voll und ganz zu / strongly agree"
+  }
+}

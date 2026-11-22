@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:npi",
+  "Level": "questionnaire",
+  "Label": "Narcissistic Personality Inventory",
+  "Aliases": [
+    "narcissistic-personality-inventory"
+  ],
+  "Description": "Narcissistic Personality Inventory. Measures grandiose narcissism. 17 items. Reference: Raskin, R., & Terry, H. (1988). A principal-components analysis of the Narcissistic Personality Inventory and further evidence of its construct validity. Journal of Personality and Social Psychology, 54(5), 890-902.",
+  "Group": "Aggression, Antisocial & Dark Traits"
+}

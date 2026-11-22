@@ -1,0 +1,17 @@
+{
+  "TermID": "prism:hsns.hsns-7",
+  "Level": "item",
+  "Parent": "prism:hsns",
+  "Label": "HSNS item 7",
+  "Aliases": [
+    "VNarc_7"
+  ],
+  "Description": "Item 7 of the Hypersensitive Narcissism Scale",
+  "Levels": {
+    "1": "trifft gar nicht zu / not at all",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "trifft voll und ganz zu / strongly agree"
+  }
+}

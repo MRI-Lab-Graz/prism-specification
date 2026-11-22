@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:hsns",
+  "Level": "questionnaire",
+  "Label": "Hypersensitive Narcissism Scale",
+  "Aliases": [
+    "hypersensitive-narcissism-scale"
+  ],
+  "Description": "Hypersensitive Narcissism Scale. Measures vulnerable narcissism. 10 items. Reference: Hendin, H. M., & Cheek, J. M. (1997). Assessing hypersensitive narcissism: A reexamination of Murray's Narcism Scale. Journal of Research in Personality, 31(4), 588-599.",
+  "Group": "Aggression, Antisocial & Dark Traits"
+}

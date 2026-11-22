@@ -1,0 +1,20 @@
+{
+  "TermID": "prism:csws.sw-21",
+  "Level": "item",
+  "Parent": "prism:csws",
+  "Label": "CSWS item 21",
+  "Aliases": [
+    "SW_21"
+  ],
+  "Description": "Item 21 of the Contingencies of Self-Worth Scale",
+  "Levels": {
+    "1": "trifft überhaupt nicht zu / not at all",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "5",
+    "6": "6",
+    "7": "trifft voll und ganz zu / strongly agree"
+  },
+  "Group": "Appearance"
+}

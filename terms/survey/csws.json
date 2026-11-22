@@ -1,0 +1,10 @@
+{
+  "TermID": "prism:csws",
+  "Level": "questionnaire",
+  "Label": "Contingencies of Self-Worth Scale",
+  "Aliases": [
+    "contingencies-of-self-worth-scale"
+  ],
+  "Description": "Contingencies of Self-Worth Scale. Measures contingencies of self-worth. 35 items. Reference: Crocker, J., Luhtanen, R. K., Cooper, M. L., & Bouvrette, A. (2003). Contingencies of self-worth in college students: Theory and measurement. Journal of Personality and Social Psychology, 85(5), 894-908.",
+  "Group": "Self-Concept & Self-Esteem"
+}

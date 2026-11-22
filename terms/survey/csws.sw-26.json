@@ -1,0 +1,20 @@
+{
+  "TermID": "prism:csws.sw-26",
+  "Level": "item",
+  "Parent": "prism:csws",
+  "Label": "CSWS item 26",
+  "Aliases": [
+    "SW_26"
+  ],
+  "Description": "Item 26 of the Contingencies of Self-Worth Scale",
+  "Levels": {
+    "1": "trifft überhaupt nicht zu / not at all",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "5",
+    "6": "6",
+    "7": "trifft voll und ganz zu / strongly agree"
+  },
+  "Group": "God's Love"
+}

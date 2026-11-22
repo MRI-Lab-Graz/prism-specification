@@ -1,0 +1,20 @@
+{
+  "TermID": "prism:csws.sw-10",
+  "Level": "item",
+  "Parent": "prism:csws",
+  "Label": "CSWS item 10",
+  "Aliases": [
+    "SW_10"
+  ],
+  "Description": "Item 10 of the Contingencies of Self-Worth Scale (reverse-coded)",
+  "Levels": {
+    "1": "trifft überhaupt nicht zu / not at all",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "5",
+    "6": "6",
+    "7": "trifft voll und ganz zu / strongly agree"
+  },
+  "Group": "Family Support"
+}

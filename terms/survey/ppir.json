@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:ppir",
+  "Level": "questionnaire",
+  "Label": "Psychopathic Personality Inventory - Revised",
+  "Aliases": [
+    "psychopathic-personality-inventory-revised",
+    "PPI-R"
+  ],
+  "Description": "Psychopathic Personality Inventory - Revised (PPI-R). Measures psychopathic personality traits (e.g. fearless dominance, self-centered impulsivity, coldheartedness). 154 items, 4-point scale. Reference: Lilienfeld, S. O., & Widows, M. R. (2005). Psychopathic Personality Inventory-Revised (PPI-R): Professional manual. Lutz, FL: Psychological Assessment Resources. German version: Alpers, G. W., & Eisenbarth, H. (2008). PPI-R. Psychopathic Personality Inventory-Revised. Deutsche Version. Göttingen: Hogrefe.",
+  "Group": "Aggression, Antisocial & Dark Traits"
+}

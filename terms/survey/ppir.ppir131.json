@@ -1,0 +1,16 @@
+{
+  "TermID": "prism:ppir.ppir131",
+  "Level": "item",
+  "Parent": "prism:ppir",
+  "Label": "PPI-R item 131",
+  "Aliases": [
+    "ppir[ppir131]"
+  ],
+  "Description": "Item 131 of the Psychopathic Personality Inventory - Revised (PPI-R)",
+  "Levels": {
+    "1": "falsch / strongly disagree",
+    "2": "eher falsch / disagree",
+    "3": "eher richtig / agree",
+    "4": "richtig / strongly agree"
+  }
+}

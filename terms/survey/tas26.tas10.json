@@ -1,0 +1,17 @@
+{
+  "TermID": "prism:tas26.tas10",
+  "Level": "item",
+  "Parent": "prism:tas26",
+  "Label": "TAS-26 item 10",
+  "Aliases": [
+    "tas[tas10]"
+  ],
+  "Description": "Item 10 of the Toronto Alexithymia Scale - 26 items (TAS-26)",
+  "Levels": {
+    "1": "trifft gar nicht zu / strongly disagree",
+    "2": "trifft eher nicht zu / disagree",
+    "3": "trifft teilweise zu / teilweise nicht zu / neither agree nor disagree",
+    "4": "trifft eher zu / agree",
+    "5": "trifft völlig zu / strongly agree"
+  }
+}

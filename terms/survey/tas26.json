@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:tas26",
+  "Level": "questionnaire",
+  "Label": "Toronto Alexithymia Scale - 26 items",
+  "Aliases": [
+    "toronto-alexithymia-scale-26-items",
+    "TAS-26"
+  ],
+  "Description": "Toronto Alexithymia Scale - 26 items (TAS-26). Measures alexithymia. 26 items, 5-point scale. Reference: Taylor, G. J., Ryan, D., & Bagby, R. M. (1985). Toward the development of a new self-report alexithymia scale. Psychotherapy and Psychosomatics, 44(4), 191-199. German version: Kupfer, J., Brosig, B., & Brähler, E. (2000). Testing and validation of the 26-Item Toronto Alexithymia Scale in a representative population sample. Zeitschrift für Psychosomatische Medizin und Psychotherapie, 46(4), 368-384.",
+  "Group": "Personality & Individual Differences"
+}

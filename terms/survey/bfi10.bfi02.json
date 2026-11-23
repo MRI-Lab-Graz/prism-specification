@@ -1,0 +1,17 @@
+{
+  "TermID": "prism:bfi10.bfi02",
+  "Level": "item",
+  "Parent": "prism:bfi10",
+  "Label": "BFI-10 item 2",
+  "Aliases": [
+    "BFI_2"
+  ],
+  "Description": "Item 2 of the Big Five Inventory - 10 items (BFI-10)",
+  "Levels": {
+    "1": "trifft überhaupt nicht zu / disagree strongly",
+    "2": "trifft eher nicht zu / disagree a little",
+    "3": "weder noch / neither agree nor disagree",
+    "4": "eher zutreffend / agree a little",
+    "5": "trifft voll und ganz zu / agree strongly"
+  }
+}

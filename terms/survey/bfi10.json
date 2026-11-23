@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:bfi10",
+  "Level": "questionnaire",
+  "Label": "Big Five Inventory - 10 items",
+  "Aliases": [
+    "big-five-inventory-10-items",
+    "BFI-10"
+  ],
+  "Description": "Big Five Inventory - 10 items (BFI-10). Measures the Big Five personality dimensions (extraversion, agreeableness, conscientiousness, neuroticism, openness) with two items each. 10 items, 5-point scale. Reference: Rammstedt, B., & John, O. P. (2007). Measuring personality in one minute or less: A 10-item short version of the Big Five Inventory in English and German. Journal of Research in Personality, 41(1), 203-212. German version: Rammstedt, B., Kemper, C. J., Klein, M. C., Beierlein, C., & Kovaleva, A. (2013). Eine kurze Skala zur Messung der fünf Dimensionen der Persönlichkeit: Big-Five-Inventory-10 (BFI-10). methoden, daten, analysen, 7(2), 233-249.",
+  "Group": "Personality & Individual Differences"
+}

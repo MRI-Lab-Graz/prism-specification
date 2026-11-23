@@ -60,10 +60,7 @@ def test_empty_string_invalid(block, key):
 
 
 @pytest.mark.parametrize("key,value", [
-    ("OriginalName", {"en": "", "de": "Fragebogen"}),
-    ("OriginalName", {"de": "Nur Deutsch"}),
     ("Description", {"de": "Nur Deutsch"}),
-    ("Instructions", {"de": "Nur Deutsch"}),
     ("Construct", {"de": "Stress"}),
     ("License", {"de": "Nur Deutsch"}),
 ])
@@ -79,6 +76,17 @@ def test_language_object_needs_english(key, value):
 ])
 def test_language_object_valid(key, value):
     assert valid(sidecar("Study", key, value))
+
+
+@pytest.mark.parametrize("key", ["OriginalName", "Instructions"])
+def test_original_language_fields_take_any_language(key):
+    """The name and the participant instructions are in the instrument's own language: no 'en' needed."""
+    assert valid(sidecar("Study", key, {"de": "Fragebogen"}))
+    assert valid(sidecar("Study", key, {"de": "Fragebogen", "en": "Questionnaire"}))
+    assert valid(sidecar("Study", key, "plain string"))
+    assert not valid(sidecar("Study", key, {}))
+    assert not valid(sidecar("Study", key, {"de": ""}))
+    assert not valid(sidecar("Study", key, {"en": "", "de": "Fragebogen"}))
 
 
 def test_license_by_language_valid():
@@ -126,8 +134,8 @@ def test_help_and_other_option_types(key, value):
 
 
 def test_version_and_archive():
-    assert SCHEMA["version"] == "2.1.6"
-    assert SCHEMA["$id"].endswith("/v2.1.6")
+    assert SCHEMA["version"] == "2.1.7"
+    assert SCHEMA["$id"].endswith("/v2.1.7")
     archived = json.loads((ROOT / "schemas/archive/survey/1.1.1.schema.json").read_text())
     assert archived["version"] == "1.1.1"
 
@@ -226,7 +234,7 @@ def test_a_template_without_recall_period_still_validates():
 
 def test_the_previous_survey_schema_is_archived_unchanged_and_the_version_is_bumped():
     stable = json.loads((ROOT / "schemas/stable/survey.schema.json").read_text())
-    assert stable["version"] == "2.1.6" and stable["$id"].endswith("/v2.1.6")
+    assert stable["version"] == "2.1.7" and stable["$id"].endswith("/v2.1.7")
     old = json.loads((ROOT / "schemas/archive/survey/2.0.0.schema.json").read_text())
     assert old["version"] == "2.0.0"
 

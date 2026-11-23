@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:solife",
+  "Level": "questionnaire",
+  "Label": "Short Oxford-Liverpool Inventory of Feelings and Experiences",
+  "Aliases": [
+    "short-oxford-liverpool-inventory-of-feelings-and-experiences",
+    "sO-LIFE"
+  ],
+  "Description": "Short Oxford-Liverpool Inventory of Feelings and Experiences (sO-LIFE). Measures schizotypy (unusual experiences, cognitive disorganisation, introvertive anhedonia, impulsive nonconformity). 43 items, yes/no. Reference: Mason, O., Linney, Y., & Claridge, G. (2005). Short scales for measuring schizotypy. Schizophrenia Research, 78(2-3), 293-296.",
+  "Group": "Personality & Individual Differences"
+}

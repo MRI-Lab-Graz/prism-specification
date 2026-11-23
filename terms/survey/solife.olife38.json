@@ -1,0 +1,14 @@
+{
+  "TermID": "prism:solife.olife38",
+  "Level": "item",
+  "Parent": "prism:solife",
+  "Label": "sO-LIFE item 38",
+  "Aliases": [
+    "olife1[olife38]"
+  ],
+  "Description": "Item 38 of the Short Oxford-Liverpool Inventory of Feelings and Experiences (sO-LIFE)",
+  "Levels": {
+    "0": "Nein / No",
+    "1": "Ja / Yes"
+  }
+}

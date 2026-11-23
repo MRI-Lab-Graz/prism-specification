@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:lts",
+  "Level": "questionnaire",
+  "Label": "Light Triad Scale",
+  "Aliases": [
+    "light-triad-scale",
+    "LTS"
+  ],
+  "Description": "Light Triad Scale (LTS). Measures the light triad of personality (Kantianism, humanism, faith in humanity). 24 items as administered, 5-point scale. Reference: Kaufman, S. B., Yaden, D. B., Hyde, E., & Tsukayama, E. (2019). The Light vs. Dark Triad of Personality: Contrasting Two Very Different Profiles of Human Nature. Frontiers in Psychology, 10, 467.",
+  "Group": "Personality & Individual Differences"
+}

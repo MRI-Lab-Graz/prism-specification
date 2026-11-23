@@ -1,0 +1,17 @@
+{
+  "TermID": "prism:lts.lt24",
+  "Level": "item",
+  "Parent": "prism:lts",
+  "Label": "LTS item 24",
+  "Aliases": [
+    "lt[lt24]"
+  ],
+  "Description": "Item 24 of the Light Triad Scale (LTS)",
+  "Levels": {
+    "1": "Ich stimme überhaupt nicht zu / strongly disagree",
+    "2": "2",
+    "3": "3",
+    "4": "4",
+    "5": "Ich stimme voll und ganz zu / strongly agree"
+  }
+}

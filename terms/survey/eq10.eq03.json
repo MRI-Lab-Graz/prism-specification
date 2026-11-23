@@ -1,0 +1,15 @@
+{
+  "TermID": "prism:eq10.eq03",
+  "Level": "item",
+  "Parent": "prism:eq10",
+  "Label": "EQ-10 item 3",
+  "Aliases": [
+    "eq10[eq03]"
+  ],
+  "Description": "Item 3 of the Empathy Quotient - 10 items (EQ-10)",
+  "Levels": {
+    "0": "stimme voll und ganz zu / strongly agree",
+    "1": "stimme eher nicht zu / slightly disagree",
+    "2": "stimme überhaupt nicht zu / strongly disagree"
+  }
+}

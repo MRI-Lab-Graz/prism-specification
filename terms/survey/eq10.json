@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:eq10",
+  "Level": "questionnaire",
+  "Label": "Empathy Quotient - 10 items",
+  "Aliases": [
+    "empathy-quotient-10-items",
+    "EQ-10"
+  ],
+  "Description": "Empathy Quotient - 10 items (EQ-10). Measures trait empathy (cognitive and affective components). 10 items, scored 0-2 (keying differs across items). Reference: Baron-Cohen, S., & Wheelwright, S. (2004). The empathy quotient: An investigation of adults with Asperger syndrome or high functioning autism, and normal sex differences. Journal of Autism and Developmental Disorders, 34(2), 163-175.",
+  "Group": "Personality & Individual Differences"
+}

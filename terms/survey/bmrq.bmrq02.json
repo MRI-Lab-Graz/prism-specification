@@ -1,0 +1,17 @@
+{
+  "TermID": "prism:bmrq.bmrq02",
+  "Level": "item",
+  "Parent": "prism:bmrq",
+  "Label": "BMRQ item 2",
+  "Aliases": [
+    "BMRQ_2"
+  ],
+  "Description": "Item 2 of the Barcelona Music Reward Questionnaire (BMRQ)",
+  "Levels": {
+    "1": "Stimme überhaupt nicht zu / strongly disagree",
+    "2": "Stimme nicht zu / disagree",
+    "3": "Weder noch / neither agree nor disagree",
+    "4": "Stimme zu / agree",
+    "5": "Stimme voll und ganz zu / strongly agree"
+  }
+}

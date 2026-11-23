@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:bmrq",
+  "Level": "questionnaire",
+  "Label": "Barcelona Music Reward Questionnaire",
+  "Aliases": [
+    "barcelona-music-reward-questionnaire",
+    "BMRQ"
+  ],
+  "Description": "Barcelona Music Reward Questionnaire (BMRQ). Measures individual differences in the experience of reward from music across five facets (musical seeking, emotion evocation, mood regulation, social reward, sensory-motor). 20 items, 5-point scale. Reference: Mas-Herrero, E., Marco-Pallares, J., Lorenzo-Seva, U., Zatorre, R. J., & Rodriguez-Fornells, A. (2013). Individual differences in music reward experiences. Music Perception, 31(2), 118-138.",
+  "Group": "Music & Arts"
+}

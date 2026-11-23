@@ -1,0 +1,17 @@
+{
+  "TermID": "prism:ments.m011",
+  "Level": "item",
+  "Parent": "prism:ments",
+  "Label": "MentS item 11",
+  "Aliases": [
+    "mentS[M011]"
+  ],
+  "Description": "Item 11 of the Mentalization Scale (MentS)",
+  "Levels": {
+    "1": "trifft nicht zu / strongly disagree",
+    "2": "trifft meistens nicht zu / disagree",
+    "3": "teils teils / neither agree nor disagree",
+    "4": "trifft meistens zu / agree",
+    "5": "trifft zu / strongly agree"
+  }
+}

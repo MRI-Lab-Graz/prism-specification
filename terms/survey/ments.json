@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:ments",
+  "Level": "questionnaire",
+  "Label": "Mentalization Scale",
+  "Aliases": [
+    "mentalization-scale",
+    "MentS"
+  ],
+  "Description": "Mentalization Scale (MentS). Measures mentalizing capacity (self-related, other-related, motivation to mentalize). 28 items, 5-point scale. Reference: Dimitrijević, A., Hanak, N., Altaras Dimitrijević, A., & Jolić Marjanović, Z. (2018). The Mentalization Scale (MentS): A self-report measure for the assessment of mentalizing capacity. Journal of Personality Assessment, 100(3), 268-280.",
+  "Group": "Personality & Individual Differences"
+}

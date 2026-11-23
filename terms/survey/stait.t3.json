@@ -1,0 +1,16 @@
+{
+  "TermID": "prism:stait.t3",
+  "Level": "item",
+  "Parent": "prism:stait",
+  "Label": "STAI-T item 3",
+  "Aliases": [
+    "T3"
+  ],
+  "Description": "Item 3 of the State-Trait Anxiety Inventory - Trait form (STAI-T)",
+  "Levels": {
+    "1": "fast nie / Never",
+    "2": "manchmal / Sometimes",
+    "3": "oft / Often",
+    "4": "fast immer / Always"
+  }
+}

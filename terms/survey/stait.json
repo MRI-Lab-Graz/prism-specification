@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:stait",
+  "Level": "questionnaire",
+  "Label": "State-Trait Anxiety Inventory - Trait form",
+  "Aliases": [
+    "state-trait-anxiety-inventory-trait-form",
+    "STAI-T"
+  ],
+  "Description": "State-Trait Anxiety Inventory - Trait form (STAI-T). Measures trait anxiety. 20 items, 4-point scale (keying differs across items). Reference: Spielberger, C. D., Gorsuch, R. L., & Lushene, R. E. (1970). Manual for the State-Trait Anxiety Inventory. Palo Alto, CA: Consulting Psychologists Press. German version: Laux, L., Glanzmann, P., Schaffner, P., & Spielberger, C. D. (1981). Das State-Trait-Angstinventar (STAI). Weinheim: Beltz.",
+  "Group": "Mood, Anxiety & Clinical Screening"
+}

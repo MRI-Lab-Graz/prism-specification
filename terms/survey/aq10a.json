@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:aq10a",
+  "Level": "questionnaire",
+  "Label": "Autism Spectrum Quotient - 10 items (adult)",
+  "Aliases": [
+    "autism-spectrum-quotient-10-items-adult",
+    "AQ-10"
+  ],
+  "Description": "Autism Spectrum Quotient - 10 items (adult) (AQ-10). Measures autistic traits (adult screening short form). 10 items, dichotomously scored (0/1; keying differs across items). Reference: Allison, C., Auyeung, B., & Baron-Cohen, S. (2012). Toward brief \"red flags\" for autism screening: The Short Autism Spectrum Quotient and the Short Quantitative Checklist in 1,000 cases and 3,000 controls. Journal of the American Academy of Child & Adolescent Psychiatry, 51(2), 202-212.",
+  "Group": "Personality & Individual Differences"
+}

@@ -1,0 +1,14 @@
+{
+  "TermID": "prism:aq10a.aq08",
+  "Level": "item",
+  "Parent": "prism:aq10a",
+  "Label": "AQ-10 item 8",
+  "Aliases": [
+    "aq10[aq08]"
+  ],
+  "Description": "Item 8 of the Autism Spectrum Quotient - 10 items (adult) (AQ-10)",
+  "Levels": {
+    "0": "stimme eher nicht zu / disagree, stimme überhaupt nicht zu / strongly disagree",
+    "1": "stimme voll und ganz zu / strongly agree, stimme eher zu / agree"
+  }
+}

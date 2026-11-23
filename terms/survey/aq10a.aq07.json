@@ -1,0 +1,14 @@
+{
+  "TermID": "prism:aq10a.aq07",
+  "Level": "item",
+  "Parent": "prism:aq10a",
+  "Label": "AQ-10 item 7",
+  "Aliases": [
+    "aq10[aq07]"
+  ],
+  "Description": "Item 7 of the Autism Spectrum Quotient - 10 items (adult) (AQ-10)",
+  "Levels": {
+    "0": "stimme eher nicht zu / disagree, stimme überhaupt nicht zu / strongly disagree",
+    "1": "stimme voll und ganz zu / strongly agree, stimme eher zu / agree"
+  }
+}

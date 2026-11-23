@@ -1,0 +1,11 @@
+{
+  "TermID": "prism:smsc",
+  "Level": "questionnaire",
+  "Label": "SMSC - Questionnaire on Behaviour in Social Situations",
+  "Aliases": [
+    "smsc-questionnaire-on-behaviour-in-social-situations",
+    "SMSC"
+  ],
+  "Description": "SMSC - Questionnaire on Behaviour in Social Situations (SMSC). Measures self-monitoring in social situations (e.g. acting, other-directedness). 35 items, true/false. Authors: Gernot von Collani, Stefan Stürmer (2009). License: CC BY-SA 4.0 (Open Test Archive, ZPID).",
+  "Group": "Social, Relationships & Attachment"
+}

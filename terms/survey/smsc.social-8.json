@@ -1,0 +1,14 @@
+{
+  "TermID": "prism:smsc.social-8",
+  "Level": "item",
+  "Parent": "prism:smsc",
+  "Label": "SMSC item 8",
+  "Aliases": [
+    "Social_8"
+  ],
+  "Description": "Item 8 of the SMSC - Questionnaire on Behaviour in Social Situations (SMSC)",
+  "Levels": {
+    "0": "Trifft nicht zu",
+    "1": "Trifft zu"
+  }
+}

@@ -165,7 +165,9 @@ def test_levels_must_exist_in_the_definition(repo):
     put(repo, "survey", "xq", {"prism:xq.xq01": {"Levels": {"7": {"Measures": [{"URL": URL}]}}}})
     assert says(run(repo), "'7'")
     put(repo, "survey", "xq", {"prism:xq.xq01": {"Levels": {"1": {"SameAs": {"example": URL}}}}})
-    assert run(repo)  # a level carries Measures and ValueRules only
+    assert run(repo) == []
+    put(repo, "survey", "xq", {"prism:xq.xq01": {"Levels": {"1": {"Label": "x"}}}})
+    assert says(run(repo), "are allowed")  # a level carries links and rules, no text
 
 
 def test_levels_refused_when_the_definition_has_none(repo):

@@ -365,7 +365,8 @@ def check_proposal(
         merged[local] = term
     if problems:
         return [], problems
-    problems = check_terms.check_registry(merged, specimens)
+    kind = next(iter(_kinds(pairs, declared)), None)
+    problems = check_terms.check_registry(merged, specimens, declared.get(kind, {}).get("unitsOptional", False))
     if not problems and (links := links_of(pairs)):
         problems = _mapping_problems(links, merged, mappings_dir)
     return ([] if problems else terms), problems
@@ -473,7 +474,8 @@ def _run_check(args) -> int:
             schema_file = Path(repo) / "schemas" / "stable" / f"{kind}.schema.json"
             terms_dir = Path(repo) / "terms" / str(kind)
         registry, problems = check_terms.load_terms(terms_dir) if kind or args.terms else ({}, [])
-        has_schema = bool(kind or args.schema)  # a schema that should be there but is not is an error bundle
+        # a schema that should be there but is not is an error bundle; a table (participants) has none
+        has_schema = bool(args.schema or (kind and kind not in check_terms.table_names(repo)))
         schema = json.loads(Path(schema_file).read_text(encoding="utf-8")) if has_schema else None
         context = modalities.get(kind, {}).get("contextField") if kind else "Technical.SpecimenType"
         specimens = check_terms.context_values(schema_file, context) if has_schema else ([] if context else None)

@@ -61,6 +61,13 @@ def check(entities: dict, schema_dir: Path, terms_dir: Path | None = None) -> li
         if entry.get("kind") == "prism" and "suffixes" in entry:
             problems += _schema_problems(name, schema_dir)
         problems += _terms_problems(name, entry, schema_dir, terms_dir)
+    # a table (participants) is described like a modality but has no folder in the data: description and terms only
+    table_entry = json.loads(ENTRY_SCHEMA.read_text(encoding="utf-8"))["properties"]
+    table_validator = Draft7Validator({"type": "object", "additionalProperties": False, "required": ["description", "terms"],
+                                       "properties": {k: table_entry[k] for k in ("description", "terms")}})
+    for name, entry in entities.get("tables", {}).items():
+        problems += [f"{name}: {e.message}" for e in table_validator.iter_errors(entry)]
+        problems += _terms_problems(name, entry, schema_dir, terms_dir)
     return problems
 
 

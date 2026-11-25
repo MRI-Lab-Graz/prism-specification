@@ -3,7 +3,8 @@
 A pattern checks the shape of a URL, never that the entry exists (specs/mappings.md). The examples below are real
 entries, looked up when the vocabulary was added: OBO ontologies and EFO through the EBI Ontology Lookup Service,
 MeSH, UMLS, Wikidata, the NIH CDE repository, PubChem, UniProt, the ATC index, Orphanet, Cognitive Atlas and WHO ICD-10
-by opening the URL. Six sources refuse automated lookups (LOINC, ICD-11, OMIM, HMDB, DrugBank, RxNorm on BioPortal):
+by opening the URL. Neurobagel's names are the ones listed in its own configuration (neurobagel/communities,
+configs/Neurobagel/config.json). Six sources refuse automated lookups (LOINC, ICD-11, OMIM, HMDB, DrugBank, RxNorm on BioPortal):
 their shape is the one their own documentation gives, so adding an entry there needs a manual look-up too
 (UNVERIFIED below; the mappings page must say the same).
 The OBO digit widths were checked against the ontologies' contents (MFOEM, MFOMD, CMO: every class; OBA: a sample).
@@ -52,6 +53,7 @@ EXAMPLES = {
     "hmdb": "https://hmdb.ca/metabolites/HMDB0000063",
     "drugbank": "https://go.drugbank.com/drugs/DB00741",
     "rxnorm": "http://purl.bioontology.org/ontology/RXNORM/5640",
+    "neurobagel": "http://neurobagel.org/vocab/Sex",
 }
 
 

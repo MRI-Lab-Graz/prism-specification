@@ -84,8 +84,8 @@ redirects (302) to this repository; below it, one rule per modality redirects a 
 | anything else | this repository's front page |
 
 A survey ID that is released but has no template in `library/survey/` yet redirects to a file that does not exist
-(404) until its stub is added; `scripts/check_mappings.py` lists those IDs as a warning. A new modality adds one rule.
-Missing (checked 2026-11-25): `biometrics` and `participants` have no rule yet, so their IRIs reach the front page.
+(404) until its stub is added; `scripts/check_mappings.py` lists those IDs as a warning. Until the general rule below (decision 4) is submitted,
+`biometrics` and `participants` IRIs reach the front page (checked 2026-11-25).
 
 `prism:<slug>` only means something inside PRISM. An IRI gives outside tools a unique, persistent, resolvable identity
 (mappings, citations, FAIR). The base stays fixed while the redirect target can move.
@@ -123,11 +123,17 @@ All modalities are treated alike. Survey is only the first one to be built.
    - Specification side: `scripts/check_terms.py` defines the pattern (`is_local_id`) and refuses to expand a `local:` ID.
    - Studio change (next PR): a project's local terms (`code/specification/terms/`) are today validated as
      `prism:<slug>`; they become `local:<slug>`.
-4. **Redirect rules**: one per modality, all of the form `^terms/<modality>/<id>$` to the file that defines the term
-   (no per-term entries; a new modality adds one line). A single regex for all modalities is not possible because the
-   repository stores them differently: `terms/<modality>/<id>.json` for biosample and environment,
-   `library/<modality>/survey-<slug>.json` for surveys, where the item suffix is dropped and the instrument file is the
-   target. For a restricted instrument the IRI resolves to its **stub**, never to full texts.
+4. **Redirect rules** (decided 2026-11-25, replaces one rule per modality): the survey rule stays, because surveys are
+   stored differently (`library/<modality>/survey-<slug>.json`, the item suffix dropped, the instrument file the target;
+   a restricted instrument resolves to its **stub**, never to full texts). After it, **one general rule** serves every
+   other folder of `terms/`, so a new kind of data needs no further change at w3id.org:
+
+   ```
+   RewriteRule ^terms/([a-z][a-z0-9]*)/([a-z][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)*)$ https://raw.githubusercontent.com/MRI-Lab-Graz/prism-specification/main/terms/$1/$2.json [R=302,L]
+   ```
+
+   Not submitted yet; test it against the live rules when it is. This relies on every kind of data other than survey
+   keeping its terms as `terms/<folder>/<id>.json`; another layout would need another rule.
 
 ### What gets an IRI, what does not
 

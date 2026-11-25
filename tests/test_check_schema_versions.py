@@ -3,6 +3,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_schema_versions.py"
 spec = importlib.util.spec_from_file_location("check_schema_versions", SCRIPT)
 mod = importlib.util.module_from_spec(spec)
@@ -128,3 +130,18 @@ def test_missing_entities_schema_fails_loudly(tmp_path, monkeypatch, capsys):
 
     assert mod.main(["x", "HEAD~1", "HEAD"]) == 1
     assert "modalities" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("status, head, lost", [
+    ("M", "prism:a\nprism:c\n", "prism:b"),
+    ("D", None, "prism:a, prism:b"),
+])
+def test_a_released_survey_id_line_is_never_lost(status, head, lost):
+    errors = _run([(status, "ids/survey-ids.txt")], {"ids/survey-ids.txt": "prism:a\nprism:b\n"},
+                  {} if head is None else {"ids/survey-ids.txt": head})
+    assert errors == [f"ids/survey-ids.txt: released IDs are frozen, lines lost: {lost}"]
+
+
+def test_adding_a_released_survey_id_passes():
+    assert _run([("M", "ids/survey-ids.txt")], {"ids/survey-ids.txt": "prism:a\n"},
+                {"ids/survey-ids.txt": "prism:0\nprism:a\n"}) == []

@@ -418,3 +418,30 @@ def test_expand_refuses_unknown_ids_and_prefixes():
     for bad in ("prism:no-such-term", "bids:cortisol", "cortisol", "prism:../x"):
         with pytest.raises(ValueError):
             _mod.expand(bad, REPO)
+
+
+def _variable(local, **over):
+    t = {"TermID": f"prism:{local}", "Level": "variable", "Label": local, "Units": "kg", "Status": "official"}
+    t.update(over)
+    return t
+
+
+def test_a_one_level_registry_accepts_a_variant_of_a_term():
+    registry = {"grip-strength": _variable("grip-strength"),
+                "grip-strength.left": _variable("grip-strength.left", Parent="prism:grip-strength")}
+    assert _mod.check_registry(registry, None) == []
+
+
+def test_a_one_level_variant_must_be_named_after_its_flat_parent():
+    registry = {
+        "grip-strength": _variable("grip-strength"),
+        "grip-strength.left": _variable("grip-strength.left", Parent="prism:grip-strength"),
+        "pinch.left": _variable("pinch.left", Parent="prism:grip-strength"),  # not <parent>.<variant>
+        "bmi.raw": _variable("bmi.raw"),  # a dot without a Parent
+        "jump.left": _variable("jump.left", Parent="prism:jump"),  # no such parent
+        "grip-strength.left.max": _variable("grip-strength.left.max", Parent="prism:grip-strength.left"),
+    }
+    text = _text(_mod.check_registry(registry, None))
+    for key in ("pinch.left", "bmi.raw", "jump.left", "grip-strength.left.max"):
+        assert f"{key}:" in text, key
+    assert "grip-strength.left:" not in text

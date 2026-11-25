@@ -75,12 +75,10 @@ def test_a_table_entry_is_checked_like_a_modality_entry():
     assert any("participants" in p and "array" in p for p in problems)
 
 
-def test_a_table_terms_folder_needs_its_declaration(tmp_path):
-    (tmp_path / "terms" / "participants").mkdir(parents=True)
-    entities = {"modalities": {}, "tables": {}}
-    assert check_modalities.check(entities, SCHEMAS, tmp_path / "terms") == []  # nothing declared, nothing to compare
-    entities["tables"] = {"other": {"description": "x", "terms": {"nonTermColumns": []}}}
-    assert any(p.startswith("other") for p in check_modalities.check(entities, SCHEMAS, tmp_path / "terms"))
+def test_a_terms_folder_nobody_declares_is_reported(tmp_path):
+    (tmp_path / "participants").mkdir()
+    problems = check_modalities.check({"modalities": {}, "tables": {}}, SCHEMAS, tmp_path)
+    assert any(p.startswith("participants") and "terms" in p for p in problems)
 
 
 @pytest.mark.parametrize("url, problem", [
@@ -114,3 +112,28 @@ def test_a_term_can_be_proposed_for_the_participants_table(tmp_path):
     assert term_proposal.main(["check", "--file", str(tmp_path / "p.json"), "--repo", str(ROOT), "--out", str(out)]) == 0
     assert (out / "log").read_text(encoding="utf-8") == ""
     assert (out / "files" / "terms" / "participants" / "siblings.json").is_file()
+
+
+def propose(tmp_path, modality, term):
+    stem = term["TermID"].partition(":")[2]
+    proposal = {"format": "prism-proposal/2", "files": {f"terms/{modality}/{stem}.json": term}}
+    (tmp_path / "p.json").write_text(json.dumps(proposal), encoding="utf-8")
+    out = tmp_path / "bundle"
+    term_proposal.main(["check", "--file", str(tmp_path / "p.json"), "--repo", str(ROOT), "--out", str(out)])
+    return (out / "log").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("modality, term", [
+    ("participants", {"TermID": "prism:body-mass", "Level": "variable", "Label": "body mass", "Aliases": ["bmi"]}),
+    ("participants", {"TermID": "prism:bmi", "Level": "variable", "Label": "another thing"}),
+    ("biometrics", {"TermID": "prism:vo2", "Level": "variable", "Label": "x", "Units": "y", "Aliases": ["age"]}),
+    ("participants", {"TermID": "prism:ozone", "Level": "variable", "Label": "another ozone"}),
+])
+def test_a_proposal_that_ci_would_reject_is_rejected(tmp_path, modality, term):
+    assert propose(tmp_path, modality, {**term, "Description": "x"})
+
+
+@pytest.mark.parametrize("aliases", [5, "abc"])
+def test_a_mistyped_term_is_a_message_not_a_crash(tmp_path, capsys, aliases):
+    code, out = run_all(repo(tmp_path, table_term={**NECK, "Aliases": aliases}), capsys)
+    assert code == 1 and "Aliases must be a list" in out and "termsFrom" not in out

@@ -68,6 +68,10 @@ def check(entities: dict, schema_dir: Path, terms_dir: Path | None = None) -> li
     for name, entry in entities.get("tables", {}).items():
         problems += [f"{name}: {e.message}" for e in table_validator.iter_errors(entry)]
         problems += _terms_problems(name, entry, schema_dir, terms_dir)
+    if terms_dir is not None and terms_dir.is_dir():
+        declared = {*entities["modalities"], *entities.get("tables", {})}
+        problems += [f"{f.name}: terms/{f.name}/ has no modalities or tables entry that declares its terms"
+                     for f in sorted(terms_dir.iterdir()) if f.is_dir() and f.name not in declared]
     return problems
 
 

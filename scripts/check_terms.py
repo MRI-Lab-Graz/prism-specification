@@ -268,8 +268,8 @@ def terms_from_problems(declared: dict[str, dict], registries: dict[str, dict[st
             if source not in registries:
                 problems.append(f"{name}: termsFrom {source!r} declares no terms")
                 continue
-            names = [{str(n).lower() for key, t in reg.items()
-                      for n in (key, t.get("Label"), *(t.get("Aliases") or []), *(t.get("Equivalents") or [])) if n}
+            names = [{str(n).lower() for key, t in reg.items() if not type_problems(t, key)  # reported by check_registry
+                      for n in (key, t.get("Label"), *t.get("Aliases", []), *t.get("Equivalents", [])) if n}
                      for reg in (registries[name], registries[source])]
             problems += [f"{name}: {n!r} also names a term of {source} (termsFrom)" for n in sorted(names[0] & names[1])]
     return problems

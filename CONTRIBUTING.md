@@ -116,6 +116,9 @@ Propose it like a metric, but the file is `terms/<modality>/<id>.json` with `Lev
 `Levels` (an object mapping each code to a short label). `CFStandardName` (a CF standard name)
 is optional. Check it with `python scripts/check_terms.py --modality <modality>`.
 
+Participant columns (`terms/participants/`, `participants.tsv`) are the exception: a date or a free category has neither
+`Units` nor `Levels`. Their names must not be names of a `biometrics` term (`height`, `weight`, `bmi` live there).
+
 ## Proposing a new kind of data
 
 If PRISM has no kind of data (modality) for your data yet, open the issue form

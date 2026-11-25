@@ -101,9 +101,11 @@ def main(argv: list[str]) -> int:
     if modalities is None:
         print(f"ERROR: schemas/stable/entities.schema.json at {head} is missing or has no `modalities` object")
         return 1
+    # the diff is against the merge base, so IDs the base gained since then are not lost by this branch
+    fork = subprocess.run(["git", "merge-base", base, head], capture_output=True, text=True, check=True).stdout.strip()
     errors = check(
         changes,
-        lambda p: _git_show(base, p),
+        lambda p: _git_show(fork if p == SURVEY_IDS else base, p),
         lambda p: _git_show(head, p),
         lambda p: _git_show(head, p) is not None,
         governed(modalities),

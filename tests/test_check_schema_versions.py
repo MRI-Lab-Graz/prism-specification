@@ -145,3 +145,20 @@ def test_a_released_survey_id_line_is_never_lost(status, head, lost):
 def test_adding_a_released_survey_id_passes():
     assert _run([("M", "ids/survey-ids.txt")], {"ids/survey-ids.txt": "prism:a\n"},
                 {"ids/survey-ids.txt": "prism:0\nprism:a\n"}) == []
+
+
+def test_ids_added_to_the_base_after_the_branch_point_are_not_lost(tmp_path, monkeypatch, capsys):
+    repo = _repo(tmp_path, monkeypatch)
+    ids = repo / "ids" / "survey-ids.txt"
+    ids.parent.mkdir()
+    ids.write_text("prism:a\n", encoding="utf-8")
+    _commit_all(repo, "ids")
+    _git(repo, "branch", "main-now")
+    ids.write_text("prism:a\nprism:x\n", encoding="utf-8")
+    _commit_all(repo, "branch adds x")
+    _git(repo, "branch", "topic")
+    _git(repo, "checkout", "-q", "main-now")
+    ids.write_text("prism:a\nprism:y\n", encoding="utf-8")
+    _commit_all(repo, "base adds y")
+
+    assert mod.main(["x", "main-now", "topic"]) == 0, capsys.readouterr().out

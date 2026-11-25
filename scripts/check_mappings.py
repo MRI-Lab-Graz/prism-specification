@@ -257,7 +257,7 @@ def missing_targets(repo: Path) -> list[str]:
 def check(repo: Path, mappings: Path | None = None) -> list[str]:
     repo = Path(repo)
     mappings = Path(mappings) if mappings else repo / "mappings"
-    deprecation_problems = deprecations(repo)[1]
+    deprecated, deprecation_problems = deprecations(repo)
     if not mappings.is_dir():
         return deprecation_problems
     vocabs, problems = load_vocabularies(mappings / "vocabularies.json")
@@ -312,7 +312,11 @@ def check(repo: Path, mappings: Path | None = None) -> list[str]:
                 if modality == "survey" and key in ids and f"prism:{family}" not in have:
                     problems.append(f"{where}: no library file for this instrument, its IRI would return 404")
                 owner.setdefault(key, name)
-                problems += entry_problems(entry, where, vocabs, ids.get(key))
+                defined = ids.get(key)
+                if modality == "survey" and key in deprecated and defined is None and isinstance(entry, dict):
+                    levels = entry.get("Levels")  # the item may have left its template, and its level codes with it
+                    defined = set(levels) if isinstance(levels, dict) else None
+                problems += entry_problems(entry, where, vocabs, defined)
     return problems
 
 

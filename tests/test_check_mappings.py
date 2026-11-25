@@ -343,3 +343,13 @@ def test_a_link_on_a_deprecated_id_is_a_warning_not_a_problem(repo, capsys):
     assert check_mappings.main(["--repo", str(repo)]) == 0
     assert ("warning: mappings/survey/xq.json: prism:xq.xq01 is deprecated, link its replacement prism:xq"
             in capsys.readouterr().out)
+
+
+def test_a_levels_link_survives_when_its_deprecated_item_leaves_the_template(repo):
+    put(repo, "survey", "xq", {"prism:xq.xq01": {"Levels": {"1": {"Measures": [{"URL": URL}]}}}})
+    write(repo / "library/survey/survey-xq.json", {"Study": {"TaskName": "xq"}, "XQ02": {"Description": {"en": "Other"}}})
+    (repo / "ids/survey-ids.txt").write_text("".join(f"{i}\n" for i in [*SURVEY_IDS, "prism:xq.xq02"]), encoding="utf-8")
+    deprecate(repo, {"prism:xq.xq01": {"ReplacedBy": "prism:xq.xq02"}})
+    assert run(repo) == []
+    put(repo, "survey", "xq", {"prism:xq.xq01": {"Levels": {"1": {"Measures": [{"URL": "nope"}]}}}})
+    assert says(run(repo), "matches no known vocabulary")  # the link's content is still checked

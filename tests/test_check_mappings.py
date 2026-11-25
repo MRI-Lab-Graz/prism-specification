@@ -301,3 +301,55 @@ def test_the_two_loinc_codes_of_the_registry_moved_into_mappings_unchanged():
         assert "LOINC" not in term
         mapping = json.loads((ROOT / f"mappings/biosample/{family}.json").read_text(encoding="utf-8"))
         assert mapping[tid]["SameAs"] == {"loinc": f"https://loinc.org/{code}"}
+
+
+# --- deprecated survey IDs: ids/survey-deprecated.json (read by Studio's src/survey_terms.deprecated_ids) ----
+
+def deprecate(repo, data):
+    write(repo / "ids/survey-deprecated.json", data)
+
+
+def test_a_valid_deprecation_passes_also_for_an_id_that_left_the_template(repo):
+    deprecate(repo, {"prism:other.o1": {"ReplacedBy": "prism:xq.xq01"}})
+    assert run(repo) == []
+
+
+@pytest.mark.parametrize("data, text", [
+    (["x"], "must hold a JSON object"),
+    ({"prism:xq.nope": {"ReplacedBy": "prism:xq.xq01"}}, "prism:xq.nope is not a released survey ID"),
+    ({"prism:xq.xq01": {}}, "prism:xq.xq01 must be {\"ReplacedBy\""),
+    ({"prism:xq.xq01": "prism:xq"}, "prism:xq.xq01 must be {\"ReplacedBy\""),
+    ({"prism:xq.xq01": {"ReplacedBy": "prism:xq", "Why": "x"}}, "prism:xq.xq01 must be {\"ReplacedBy\""),
+    ({"prism:xq.xq01": {"ReplacedBy": "prism:xq.nope"}}, "prism:xq.nope, which is not a released survey ID"),
+    ({"prism:xq.xq01": {"ReplacedBy": "prism:xq.xq01"}}, "which is deprecated itself"),
+    ({"prism:xq.xq01": {"ReplacedBy": "prism:other"}, "prism:other": {"ReplacedBy": "prism:xq"}},
+     "which is deprecated itself"),
+])
+def test_a_bad_deprecation_is_a_problem(repo, data, text):
+    deprecate(repo, data)
+    assert says(run(repo), text)
+
+
+def test_deprecations_are_checked_without_a_mappings_folder(repo):
+    (repo / "mappings/vocabularies.json").unlink()
+    (repo / "mappings").rmdir()
+    deprecate(repo, {"prism:xq.xq01": {}})
+    assert says(run(repo), "survey-deprecated.json")
+
+
+def test_a_link_on_a_deprecated_id_is_a_warning_not_a_problem(repo, capsys):
+    put(repo, "survey", "xq", {"prism:xq.xq01": {"Measures": [{"URL": URL}]}})
+    deprecate(repo, {"prism:xq.xq01": {"ReplacedBy": "prism:xq"}})
+    assert check_mappings.main(["--repo", str(repo)]) == 0
+    assert ("warning: mappings/survey/xq.json: prism:xq.xq01 is deprecated, link its replacement prism:xq"
+            in capsys.readouterr().out)
+
+
+def test_a_levels_link_survives_when_its_deprecated_item_leaves_the_template(repo):
+    put(repo, "survey", "xq", {"prism:xq.xq01": {"Levels": {"1": {"Measures": [{"URL": URL}]}}}})
+    write(repo / "library/survey/survey-xq.json", {"Study": {"TaskName": "xq"}, "XQ02": {"Description": {"en": "Other"}}})
+    (repo / "ids/survey-ids.txt").write_text("".join(f"{i}\n" for i in [*SURVEY_IDS, "prism:xq.xq02"]), encoding="utf-8")
+    deprecate(repo, {"prism:xq.xq01": {"ReplacedBy": "prism:xq.xq02"}})
+    assert run(repo) == []
+    put(repo, "survey", "xq", {"prism:xq.xq01": {"Levels": {"1": {"Measures": [{"URL": "nope"}]}}}})
+    assert says(run(repo), "matches no known vocabulary")  # the link's content is still checked

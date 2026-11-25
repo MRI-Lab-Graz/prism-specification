@@ -23,7 +23,8 @@ def test_every_fitness_column_names_its_term():
     for column, stem in FITNESS_COLUMNS.items():
         assert terms[stem]["TermID"] == f"prism:{stem}"
         assert column == stem or column in terms[stem].get("Aliases", []), column
-    assert set(terms) == set(FITNESS_COLUMNS.values()) | {"grip-strength"}
+    # height and weight are participant columns, but body measurements like bmi: participants reaches them by termsFrom
+    assert set(terms) == set(FITNESS_COLUMNS.values()) | {"grip-strength", "height", "weight"}
 
 
 def test_biometrics_declares_terms_and_its_columns_may_name_one():
